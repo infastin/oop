@@ -1,12 +1,13 @@
 #include <stdio.h>
 
 #include "Circle.h"
+#include "Point2D.h"
 
 int main(int argc, char *argv[])
 {
 	initCircle();
 
-	void *a = new(Circle, 1, 2, 3);
+	var a = new(Circle, 1, 2, 3);
 
 	draw(a);
 

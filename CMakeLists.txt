@@ -23,9 +23,10 @@ endif()
 set(INCLUDE_FOLDER include)
 
 add_library(obj STATIC 
-			${INCLUDE_FOLDER}/new.c 
-			${INCLUDE_FOLDER}/Point2D.c
-			${INCLUDE_FOLDER}/Circle.c)
+			${INCLUDE_FOLDER}/Selectors.c 
+			${INCLUDE_FOLDER}/Object.c 
+			${INCLUDE_FOLDER}/Circle.c
+			${INCLUDE_FOLDER}/Point2D.c)
 target_include_directories(obj PUBLIC ${INCLUDE_FOLDER})
 
 

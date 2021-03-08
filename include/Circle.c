@@ -1,15 +1,13 @@
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
 #include <stdio.h>
 
 #include "Circle.h"
+#include "Object.h"
 #include "Point2D.h"
+#include "Selectors.h"
 
 static void* Circle_ctor(void *_self, va_list *props)
 {
-	struct Circle *self = ((const struct Object *) Point2D)->ctor(_self, props);
+	struct Circle *self = super_ctor(Circle, _self, props);	
 
 	self->rad = va_arg(*props, int);
 	return self;
@@ -22,22 +20,20 @@ void Circle_draw(const void *_self)
 	printf("circle at %d,%d rad %d\n", self->x, self->y, self->rad);
 }
 
-const void *Circle;
+const void* Circle;
 
 void initCircle()
 {
-	struct Circle_Object *_Circle = (struct Circle_Object*)calloc(1, sizeof(struct Circle_Object));
-	const size_t offset = offsetof(struct Circle_Object, ctor);
+	if (!Circle)
+	{
+		initPoint2D();
 
-	_Circle->super = (const struct Point2D_Object*)Point2D;
-	_Circle->size = sizeof(struct Circle);
+		void *circle = new(Point2D_Class, "Circle",
+				Point2D, sizeof(struct Circle));
 
-	memcpy((char*)_Circle + offset, 
-		   (char*)_Circle->super + offset,
-			sizeof(struct Point2D_Object) - offset);
+		method(circle, (voidf) ctor, (voidf) Circle_ctor);
+		method(circle, (voidf) draw, (voidf) Circle_draw);
 
-	_Circle->ctor = Circle_ctor;
-	_Circle->draw = Circle_draw;
-
-	Circle = _Circle;
+		Circle = circle;
+	}
 }

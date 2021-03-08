@@ -1,22 +1,27 @@
 #ifndef POINT2D_H_L9K8WQMI
 #define POINT2D_H_L9K8WQMI
 
-#include "new.h"
+#include "Selectors.h"
 
-extern const void* Point2D;
+extern const void *Point2D_Class, *Point2D;
 
-struct Point2D_Object
+typedef void (*draw_f)(const void *self);
+
+struct Point2D_Class
 {
-	struct Object;
-	void (*draw)(const void *self);
+	const struct Class _;
+	draw_f draw;
 };
 
 struct Point2D
 {
-	const void *object;
+	const struct Object _;
 	int x, y;
 };
 
 void draw(const void *self);
+void super_draw(const void *class, const void *self);
+
+void initPoint2D(void);
 
 #endif /* end of include guard: POINT2D_H_L9K8WQMI */
