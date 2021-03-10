@@ -1,15 +1,22 @@
 #include <stdio.h>
 
-#include "Circle.h"
-#include "Point2D.h"
+#include "Init.h"
 
 int main(int argc, char *argv[])
 {
-	initCircle();
+	{
+		smart var a = new(Int, 10);
+		smart var b = a;
 
-	var a = new(Circle, 1, 2, 3);
+		smart struct Object *A = retain(a);
+		smart struct Object *B = retain(b);
 
-	draw(a);
+		set(a, 12);
+
+		int val = get(A, int);
+
+		printf("%d %lu %lu\n", val, A->ref_count, B->ref_count);
+	}
 
 	return 0;
 }

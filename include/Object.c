@@ -21,11 +21,6 @@ static void* Object_dtor(void *_self)
 	return _self;
 }
 
-void Object_method(void *_self, voidf replace, voidf method)
-{
-	return;
-}
-
 const void* classOf(const void *_self)
 {
 	const struct Object *self = _self;
@@ -61,9 +56,12 @@ static void* Class_ctor(void *_self, va_list *props)
 
 	voidf selector;
 
-	while ((selector = va_arg(*props, voidf)))
+	va_list ap;
+	va_copy(ap, *props);
+
+	while ((selector = va_arg(ap, voidf)))
 	{	
-		voidf method = va_arg(*props, voidf);
+		voidf method = va_arg(ap, voidf);
 
 		if (selector == (voidf) ctor)
 			self->ctor = (ctor_f) method;
@@ -81,33 +79,20 @@ static void* Class_dtor(void *_self)
 	return 0;
 }
 
-
-void Class_method(void *_self, voidf _replace, voidf _method)
-{
-	struct Class *self = _self;
-
-	if (_replace == (voidf) ctor)
-		self->ctor = (ctor_f) _method;
-	if (_replace == (voidf) dtor)
-		self->dtor = (dtor_f) _method;
-	if (_replace == (voidf) method)
-		self->method = (method_f) _method;
-}
-
 /*
  *	Initialization
  */
 
 static const struct Class object[] = {
 	{ 
-		{ object + 1 },
+		{ object + 1, 1 },
 		"Object", object, sizeof(struct Object),
-		Object_ctor, Object_dtor, Object_method
+		Object_ctor, Object_dtor 
 	},
 	{ 
-		{ object + 1 },
+		{ object + 1, 1 },
 		"Class", object, sizeof(struct Class),
-		Class_ctor, Class_dtor, Class_method
+		Class_ctor, Class_dtor 
 	}
 };
 

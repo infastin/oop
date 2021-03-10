@@ -28,12 +28,10 @@ void initCircle()
 	{
 		initPoint2D();
 
-		void *circle = new(Point2D_Class, "Circle",
-				Point2D, sizeof(struct Circle));
-
-		method(circle, (voidf) ctor, (voidf) Circle_ctor);
-		method(circle, (voidf) draw, (voidf) Circle_draw);
-
-		Circle = circle;
+		Circle = new(Point2D_Class, "Circle",
+				Point2D, sizeof(struct Circle),
+				ctor, Circle_ctor,
+				draw, Circle_draw,
+				0);
 	}
 }

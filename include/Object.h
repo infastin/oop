@@ -3,17 +3,18 @@
 
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 
 extern const void *Object, *Class;
 
 typedef void  (*voidf)(void);
 typedef void *(*ctor_f)(void *self, va_list *props);
 typedef void *(*dtor_f)(void *self);
-typedef void  (*method_f)(void *self, voidf selection, voidf method);
 
 struct Object
 {
-	const struct Class *class;	
+	const struct Class *class;
+	atomic_size_t ref_count;
 };
 
 struct Class
@@ -25,7 +26,6 @@ struct Class
 	
 	ctor_f ctor;
 	dtor_f dtor;
-	method_f method;
 };
 
 const void* classOf(const void *self);

@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "Object.h"
 #include "Selectors.h"
@@ -19,6 +21,7 @@ void* new(const void *_class, ...)
 
 	assert(object);
 	object->class = class;
+	atomic_init((atomic_size_t*) &object->ref_count, 1);
 
 	va_list props;
 
@@ -32,7 +35,10 @@ void* new(const void *_class, ...)
 void delete(void *_self)
 {
 	if (_self)
+	{
 		free(dtor(_self));
+		_self = NULL;
+	}
 }
 
 /*
@@ -53,14 +59,6 @@ void* ctor(void *_self, va_list *props)
 
 	assert(class->ctor);
 	return class->ctor(_self, props);
-}
-
-void method(void *_self, voidf _selection, voidf _method)
-{
-	const struct Class *class = classOf(_self);
-
-	assert(class->method);
-	class->method(_self, _selection, _method);
 }
 
 /*
@@ -90,12 +88,3 @@ void* super_dtor(const void *_class, void *_self)
 	assert(superclass->dtor);
 	return superclass->dtor(_self);
 }
-
-void super_method(const void *_class, void *_self, voidf _selection, voidf _method)
-{
-	const struct Class *superclass = super(_class);
-
-	assert(superclass->method);
-	superclass->method(_self, _selection, _method);
-}
-
