@@ -3,7 +3,8 @@
 
 #include "Selectors.h"
 
-extern const void *Point2D_Class, *Point2D;
+extern const void* const Point2D_Class(void);
+extern const void* const Point2D(void);
 
 typedef void (*draw_f)(const void *self);
 
@@ -21,7 +22,5 @@ struct Point2D
 
 void draw(const void *self);
 void super_draw(const void *class, const void *self);
-
-void initPoint2D(void);
 
 #endif /* end of include guard: POINT2D_H_L9K8WQMI */

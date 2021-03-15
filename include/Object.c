@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "Object.h"
 #include "Selectors.h"
@@ -21,9 +22,48 @@ static void* Object_dtor(void *_self)
 	return _self;
 }
 
+/*
+ * Object selectors
+ */
+
+
+static void catch(int signal)
+{
+	assert(signal == 0);
+}
+
+void* cast(const void* class, const void *_self)
+{
+	void (*sigsegv)(int) = signal(SIGSEGV, catch);
+#ifdef SIGBUS
+	void (*sigbus)(int) = signal(SIGBUS, catch);
+#endif
+
+	const struct Object *self = isObject(_self);
+	const struct Class  *myClass = isObject(self->class);
+
+	if (class != Object())
+	{
+		isObject(class);
+
+		while(myClass != class)
+		{
+			assert(myClass != Object());
+			myClass = myClass->super;
+		}
+	}
+
+#ifdef SIGBUS
+	signal(SIGBUS, sigbus);
+#endif
+	signal(SIGSEGV, sigsegv);
+
+	return (void*) self;
+}
+
 const void* classOf(const void *_self)
 {
-	const struct Object *self = _self;
+	const struct Object *self = cast(Object(), _self);
 
 	return self->class;
 }
@@ -33,6 +73,45 @@ size_t sizeOf(const void *_self)
 	const struct Class *class = classOf(_self);
 
 	return class->size;
+}
+
+int isA(const void *_self, const void *class)
+{
+	if (_self)
+	{
+		const struct Object *self = cast(Object(), _self);
+		cast(Object(), class);
+
+		return classOf(self) == class;
+	}
+
+	return 0;
+}
+
+int isOf(const void *_self, const void *class)
+{
+	if (_self)
+	{
+		const struct Object *self = cast(Object(), _self);
+		const struct Class *myClass = classOf(self);
+
+		cast(Class, class);
+
+		if (class != Object())
+		{
+			while(myClass != class)
+			{
+				if (myClass != Object())
+					myClass = myClass->super;
+				else
+					return 0;
+			}
+		}
+
+		return 1;
+	}
+
+	return 0;
 }
 
 /*
@@ -67,6 +146,10 @@ static void* Class_ctor(void *_self, va_list *props)
 			self->ctor = (ctor_f) method;
 		else if (selector == (voidf) dtor)
 			self->dtor = (dtor_f) method;
+		else if (selector == (voidf) set)
+			self->set = (set_f) method;
+		else if (selector == (voidf) get_vptr)
+			self->get_vptr = (get_vptr_f) method;
 	}
 
 	return self;
@@ -83,18 +166,26 @@ static void* Class_dtor(void *_self)
  *	Initialization
  */
 
-static const struct Class object[] = {
-	{ 
-		{ object + 1, 1 },
-		"Object", object, sizeof(struct Object),
-		Object_ctor, Object_dtor 
-	},
-	{ 
-		{ object + 1, 1 },
-		"Class", object, sizeof(struct Class),
-		Class_ctor, Class_dtor 
-	}
+static const struct Class _Object;
+static const struct Class _Class;
+
+static const struct Class _Object = {
+	{ MAGIC_NUM, &_Class, 1 },
+	"Object", &_Object, sizeof(struct Object),
+	Object_ctor, Object_dtor, NULL, NULL
 };
 
-const void *Object = object;
-const void *Class = object + 1;
+static const struct Class _Class = {
+	{ MAGIC_NUM, &_Class, 1 },
+	"Class", &_Object, sizeof(struct Class),
+	Class_ctor, Class_dtor, NULL, NULL
+};
+
+const void* const Object(void) {
+	return &_Object;
+}
+
+const void* const Class(void)
+{
+	return &_Class;
+}

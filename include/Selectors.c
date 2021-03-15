@@ -13,15 +13,16 @@
 
 void* new(const void *_class, ...)
 {
-	const struct Class *class = _class;
+	const struct Class *class = cast(Class(), _class);
 	struct Object *object;
 
 	assert(class && class->size);
 	object = (struct Object*)calloc(1, class->size);
 
 	assert(object);
+	object->magic = MAGIC_NUM;
 	object->class = class;
-	atomic_init((atomic_size_t*) &object->ref_count, 1);
+	atomic_init((atomic_uint*) &object->ref_count, 1);
 
 	va_list props;
 
@@ -35,10 +36,7 @@ void* new(const void *_class, ...)
 void delete(void *_self)
 {
 	if (_self)
-	{
 		free(dtor(_self));
-		_self = NULL;
-	}
 }
 
 /*
@@ -61,13 +59,35 @@ void* ctor(void *_self, va_list *props)
 	return class->ctor(_self, props);
 }
 
+void set(void *_self, ...)
+{
+	const struct Class *class = classOf(_self);
+
+	assert(class->set);
+
+	va_list props;
+
+	va_start(props, _self);
+	class->set(_self, &props);
+	va_end(props);
+}
+
+// Get type's value pointer
+void* get_vptr(void *_self)
+{
+	const struct Class *class = classOf(_self);
+
+	assert(class->get_vptr);
+	return class->get_vptr(_self);
+}
+
 /*
  * Super's base selectors
  */
 
 const void* super(const void *_self)
 {
-	const struct Class *self = _self;
+	const struct Class *self = cast(Class(), _self);
 
 	assert(self->super);
 	return self->super;

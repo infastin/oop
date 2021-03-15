@@ -12,7 +12,7 @@
 
 static void* Point2D_ctor(void *_self, va_list *props)
 {
-	struct Point2D *self = super_ctor(Point2D, _self, props);
+	struct Point2D *self = super_ctor(Point2D(), _self, props);
 
 	self->x = va_arg(*props, int);
 	self->y = va_arg(*props, int);
@@ -22,7 +22,7 @@ static void* Point2D_ctor(void *_self, va_list *props)
 
 static void Point2D_draw(const void *_self)
 {
-	const struct Point2D *self = _self;
+	const struct Point2D *self = cast(Point2D(), _self);
 
 	printf("\".\" at %d,%d\n", self->x, self->y);
 }
@@ -33,7 +33,7 @@ static void Point2D_draw(const void *_self)
 
 void draw(const void *_self)
 {
-	const struct Point2D_Class *class = classOf(_self);
+	const struct Point2D_Class *class = cast(Point2D_Class(), classOf(_self));
 
 	assert(class->draw);
 	class->draw(_self);
@@ -41,7 +41,7 @@ void draw(const void *_self)
 
 void super_draw(const void *_class, const void *_self)
 {
-	const struct Point2D_Class *superclass = super(_class);
+	const struct Point2D_Class *superclass = cast(Point2D_Class(), super(_class));
 
 	assert(superclass->draw);
 	superclass->draw(_self);
@@ -53,7 +53,7 @@ void super_draw(const void *_class, const void *_self)
 
 static void* Point2D_Class_ctor(void *_self, va_list *props)
 {
-	struct Point2D_Class *self = super_ctor(Point2D_Class, _self, props);
+	struct Point2D_Class *self = super_ctor(Point2D_Class(), _self, props);
 
 	voidf selector;
 	va_list ap;
@@ -74,24 +74,31 @@ static void* Point2D_Class_ctor(void *_self, va_list *props)
  * Initializtion
  */
 
-const void *Point2D_Class, *Point2D;
+static const void *_Point2D_Class, *_Point2D;
 
-void initPoint2D(void)
+const void* const Point2D_Class(void)
 {
-	if(!Point2D_Class)
+	if (!_Point2D_Class)
 	{
-		Point2D_Class = new(Class, "Point2D_Class", 
-				Class, sizeof(struct Point2D_Class),
+		_Point2D_Class = new(Class(), "Point2D_Class",
+				Class(), sizeof(struct Point2D_Class),
 				ctor, Point2D_Class_ctor,
 				0);
 	}
 
-	if (!Point2D)
+	return _Point2D_Class;
+}
+
+const void* const Point2D(void)
+{
+	if (!_Point2D)
 	{
-		Point2D = new(Point2D_Class, "Point",
-				Object, sizeof(struct Point2D),
+		_Point2D = new(Point2D_Class(), "Point",
+				Object(), sizeof(struct Point2D),
 				ctor, Point2D_ctor,
 				draw, Point2D_draw,
 				0);
 	}
+
+	return _Point2D;
 }

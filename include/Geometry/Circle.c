@@ -15,23 +15,23 @@ static void* Circle_ctor(void *_self, va_list *props)
 
 void Circle_draw(const void *_self)
 {
-	const struct Circle *self = _self;
+	const struct Circle *self = cast(Circle(), _self);
 
 	printf("circle at %d,%d rad %d\n", self->x, self->y, self->rad);
 }
 
-const void* Circle;
+static const void* _Circle;
 
-void initCircle()
+const void* const Circle(void)
 {
-	if (!Circle)
+	if (!_Circle)
 	{
-		initPoint2D();
-
-		Circle = new(Point2D_Class, "Circle",
-				Point2D, sizeof(struct Circle),
+		_Circle = new(Point2D_Class(), "Circle",
+				Point2D(), sizeof(struct Circle),
 				ctor, Circle_ctor,
 				draw, Circle_draw,
 				0);
 	}
+
+	return _Circle;
 }

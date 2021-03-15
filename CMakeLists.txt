@@ -33,7 +33,10 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/Selectors.c 
 			${INCLUDE_FOLDER}/Object.c
 			${INCLUDE_FOLDER}/TypeClass.c
-			${INCLUDE_FOLDER}/ReferenceCounter.c)
+			${INCLUDE_FOLDER}/ReferenceCounter.c
+			${INCLUDE_FOLDER}/ReferenceCounter.c
+			${INCLUDE_FOLDER}/Exception.c
+			${INCLUDE_FOLDER}/ExceptionObject.c)
 
 add_library(geometry STATIC
 			${GEOMETRY_FOLDER}/Circle.c

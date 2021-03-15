@@ -1,16 +1,15 @@
 #ifndef INTTYPE_H_ITLFXA2E
 #define INTTYPE_H_ITLFXA2E
 
+#include "Object.h"
 #include "TypeClass.h"
 
-extern const void* Int;
+ClassHeader(Int);
 
 struct IntType
 {
 	const struct Object _;
 	int value;
 };
-
-void initIntType(void);
 
 #endif /* end of include guard: INTTYPE_H_ITLFXA2E */

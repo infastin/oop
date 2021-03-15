@@ -1,21 +1,21 @@
+#include <setjmp.h>
 #include <stdio.h>
 
+#include "Exception.h"
+#include "ExceptionObject.h"
 #include "Init.h"
+#include "Object.h"
+#include "Selectors.h"
 
 int main(int argc, char *argv[])
 {
+	try 
 	{
-		smart var a = new(Int, 10);
-		smart var b = a;
-
-		smart struct Object *A = retain(a);
-		smart struct Object *B = retain(b);
-
-		set(a, 12);
-
-		int val = get(A, int);
-
-		printf("%d %lu %lu\n", val, A->ref_count, B->ref_count);
+		throw(SomeError(), "Bruh");
+	}
+	catch(e, SomeError())
+	{
+		printf("Caught exception: '%s: %s'", exception_name(e), exception_message(e));
 	}
 
 	return 0;

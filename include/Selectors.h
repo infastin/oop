@@ -18,4 +18,9 @@ const void* super(const void *self);
 void* super_ctor(const void *class, void *self, va_list *props);
 void* super_dtor(const void *class, void *self);
 
+void* get_vptr(void *self);
+void  set(void *self, ...);
+
+#define get(self, type) (*(type*) get_vptr(self))
+
 #endif /* end of include guard: NEW_H_0FEJN6R1 */
