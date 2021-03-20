@@ -30,11 +30,14 @@
 ClassHeader(Object);
 ClassHeader(Class);
 
+ObjectHeader(ObjectException);
+
 typedef void  (*voidf)(void);
-typedef void *(*ctor_f)(void *self, va_list *props);
+typedef void *(*ctor_f)(void *self, va_list *ap);
+typedef void *(*cpy_f)(const void *self, void *object);
 typedef void *(*dtor_f)(void *self);
-typedef void  (*set_f)(void *self, va_list *props);
-typedef void *(*get_vptr_f)(void *self);
+typedef void  (*set_f)(void *self, va_list *ap);
+typedef void *(*get_f)(const void *self, va_list *ap);
 
 struct Object
 {
@@ -52,8 +55,9 @@ struct Class
 	
 	ctor_f ctor;
 	dtor_f dtor;
+	cpy_f cpy;
 	set_f set;
-	get_vptr_f get_vptr;
+	get_f get;
 };
 
 const void* classOf(const void *self);

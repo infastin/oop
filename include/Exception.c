@@ -17,28 +17,16 @@
  * Methods
  */
 
-static void* Exception_ctor(void *_self, va_list *props)
+static void* Exception_ctor(void *_self, va_list *ap)
 {
-	struct Exception *self = super_ctor(Exception(), _self, props);
+	struct Exception *self = super_ctor(Exception(), _self, ap);
 
 	self->active = 0;
 	self->depth = 0;
-	self->msg = NULL;
 	self->obj = NULL;
 	memset(self->buffers, 0, sizeof(jmp_buf*) * EXCEPTION_MAX_DEPTH);
 	
 	return self;
-}
-
-static void* Exception_dtor(void *_self)
-{
-
-	struct Exception *self = cast(Exception(), _self);
-
-	if (self->msg)
-		free(self->msg);
-
-	return super_dtor(ExceptionObject(), _self);
 }
 
 /*
@@ -187,7 +175,7 @@ static void Exception_error(struct Exception *self)
 {
 	fprintf(stderr, "\n");
 	fprintf(stderr, "*** Terminating app due to uncaught exception '%s'\n", self->obj->name);
-	fprintf(stderr, "[*] Reason: '%s'\n\n", self->msg);
+	fprintf(stderr, "[*] Reason: '%s'\n\n", self->obj->msg);
 
 	Exception_backtrace();
 
@@ -236,18 +224,14 @@ void exception_throw(void *_self, const void *_obj, char *fmt, ...)
 	struct Exception *self = cast(Exception(), _self);
 	struct ExceptionObject *obj = cast(ExceptionObject(), _obj);
 
-	if (self->msg)
-		free(self->msg);
+	if (obj->msg)
+		free(obj->msg);
 
-	size_t msg_len;
 	va_list ap;
-	
-	va_start(ap, fmt);
-	msg_len = asprintf(&self->msg, fmt, ap);
-	va_end(ap);
 
-	obj->msg = (char*)malloc(sizeof(char) * (msg_len + 1));
-	strcpy(obj->msg, self->msg);
+	va_start(ap, fmt);
+	vasprintf(&obj->msg, fmt, ap);
+	va_end(ap);
 	self->obj = obj;
 
 	if(self->depth >= 1)
@@ -301,7 +285,6 @@ ClassImpl(Exception)
 		_Exception = new(Class(), "Exception",
 				Object(), sizeof(struct Exception),
 				ctor, Exception_ctor,
-				dtor, Exception_dtor,
 				0);
 	}
 

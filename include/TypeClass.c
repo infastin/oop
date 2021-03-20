@@ -2,6 +2,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "Exception.h"
+#include "ExceptionObject.h"
 #include "Object.h"
 #include "TypeClass.h"
 #include "Selectors.h"
@@ -10,24 +12,28 @@
  * Methods
  */
 
-static void* TypeClass_ctor(void *_self, va_list *props)
+static void* TypeClass_ctor(void *_self, va_list *ap)
 {
-	struct TypeClass *self = super_ctor(TypeClass(), _self, props);
+	struct TypeClass *self = super_ctor(TypeClass(), _self, ap);
 
 	voidf selector;
-	va_list ap;
-	va_copy(ap, *props);
+	va_list ap_copy;
+	va_copy(ap_copy, *ap);
 
 	self->cmp = NULL;
 	self->swap = NULL;
 	self->sum = NULL;
+	self->subtract = NULL;
 	self->product = NULL;
+	self->divide = NULL;
 	self->scadd = NULL;
+	self->scsub = NULL;
 	self->scmulti = NULL;
+	self->scdivide = NULL;
 
-	while ((selector = va_arg(ap, voidf)))
+	while ((selector = va_arg(ap_copy, voidf)))
 	{
-		voidf method = va_arg(ap, voidf);
+		voidf method = va_arg(ap_copy, voidf);
 
 		if (selector == (voidf) cmp)
 			self->cmp = (cmp_f) method;
@@ -35,14 +41,23 @@ static void* TypeClass_ctor(void *_self, va_list *props)
 			self->swap = (swap_f) method;
 		else if (selector == (voidf) sum)
 			self->sum = (sum_f) method;
+		else if (selector == (voidf) subtract)
+			self->subtract = (subtract_f) method;
 		else if (selector == (voidf) product)
 			self->product = (product_f) method;
+		else if (selector == (voidf) divide)
+			self->divide = (divide_f) method;
 		else if (selector == (voidf) scadd)
 			self->scadd = (scadd_f) method;
+		else if (selector == (voidf) scsub)
+			self->scsub = (scsub_f) method;
 		else if (selector == (voidf) scmulti)
 			self->scmulti = (scmulti_f) method;
+		else if (selector == (voidf) scdivide)
+			self->scdivide = (scdivide_f) method;
 	}
 
+	va_end(ap_copy);
 	return self;
 }
 
@@ -53,121 +68,194 @@ static void* TypeClass_ctor(void *_self, va_list *props)
 // Compare two variables of the same type
 int cmp(const void *_self, const void *b)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->cmp);
-	return class->cmp(_self, b);
-}
+	if (tclass->cmp == NULL)
+		throw(TypeException(), "Compare Error: Type '%s' doesn't have 'cmp' method!",
+				class->name);
 
-int super_cmp(const void *_class, const void *_self, const void *b)
-{
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
-
-	assert(superclass->cmp);
-	return superclass->cmp(_self, b);
+	return tclass->cmp(_self, b);
 }
 
 // Sum two variables of the same type, 
 // return new variable with the same type and the result of sum as value.
 void* sum(const void *_self, const void *b)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->sum);
-	return class->sum(_self, b);
+	if (tclass->sum == NULL)
+		throw(TypeException(), "Sum Error: Type '%s' doesn't have 'sum' method!",
+				class->name);
+
+	return tclass->sum(_self, b);
 }
 
-void* super_sum(const void *_class, const void *_self, const void *b)
+// Subtract one variable from other of the same type, 
+// return new variable with the same type and the result of subtraction as value.
+void* subtract(const void *_self, const void *b)
 {
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(superclass->sum);
-	return superclass->sum(_self, b);
+	if (tclass->subtract == NULL)
+		throw(TypeException(), "Subtract Error: Type '%s' doesn't have 'subtract' method!",
+				class->name);
+
+	return tclass->subtract(_self, b);
 }
 
 // Multiply two variables of the same type, 
 // return new variable with the same type and the result of multiplication as value.
 void* product(const void *_self, const void *b)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->product);
-	return class->product(_self, b);
+	if (tclass->product == NULL)
+		throw(TypeException(), "Product Error: Type '%s' doesn't have 'product' method!",
+				class->name);
+
+	return tclass->product(_self, b);
 }
 
-void* super_product(const void *_class, const void *_self, const void *b)
+// Divide one variable by other of the same type, 
+// return new variable with the same type and the result of division as value.
+void* divide(const void *_self, const void *b)
 {
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(superclass->product);
-	return superclass->product(_self, b);
+	if (tclass->divide == NULL)
+		throw(TypeException(), "Divide Error: Type '%s' doesn't have 'divide' method!",
+				class->name);
+
+	return tclass->divide(_self, b);
 }
 
 // Add scalar to the variable of some type
-void scadd(const void *_self, ...)
+void scadd(void *_self, ...)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->scadd);
-
+	if (tclass->scadd == NULL)
+		throw(TypeException(), "Scalar Add Error: Type '%s' doesn't have 'scadd' method!",
+				class->name);
 	va_list ap;
 	va_start(ap, _self);
-	class->scadd(_self, &ap);
+	tclass->scadd(_self, &ap);
 	va_end(ap);
 }
 
-void super_scadd(const void *_class, const void *_self, ...)
+void vscadd(void *_self, va_list *ap)
 {
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(superclass->scadd);
+	if (tclass->scadd == NULL)
+		throw(TypeException(), "Scalar Add Error: Type '%s' doesn't have 'scadd' method!",
+				class->name);
+
+	tclass->scadd(_self, ap);
+}
+
+// Subtract scalar from the variable of some type
+void scsub(void *_self, ...)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->scsub == NULL)
+		throw(TypeException(), "Scalar Subtract Error: Type '%s' doesn't have 'scsub' method!",
+				class->name);
 
 	va_list ap;
 	va_start(ap, _self);
-	superclass->scadd(_self, &ap);
+	tclass->scsub(_self, &ap);
 	va_end(ap);
+}
+
+void vscsub(void *_self, va_list *ap)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->scsub == NULL)
+		throw(TypeException(), "Scalar Subtract Error: Type '%s' doesn't have 'scsub' method!",
+				class->name);
+
+	tclass->scsub(_self, ap);
 }
 
 // Multiply on scalar variable of some type
-void scmulti(const void *_self, ...)
+void scmulti(void *_self, ...)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->scmulti);
+	if (tclass->scmulti == NULL)
+		throw(TypeException(), "Scalar Multiply Error: Type '%s' doesn't have 'scmulti' method!",
+				class->name);
 
 	va_list ap;
 	va_start(ap, _self);
-	class->scmulti(_self, &ap);
+	tclass->scmulti(_self, &ap);
 	va_end(ap);
 }
 
-void super_scmulti(const void *_class, const void *_self, ...)
+void vscmulti(void *_self, va_list *ap)
 {
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(superclass->scmulti);
+	if (tclass->scmulti == NULL)
+		throw(TypeException(), "Scalar Multiply Error: Type '%s' doesn't have 'scmulti' method!",
+				class->name);
+
+	tclass->scmulti(_self, ap);
+}
+
+// Divide by scalar variable of some type
+void scdivide(void *_self, ...)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->scdivide == NULL)
+		throw(TypeException(), "Scalar Divide Error: Type '%s' doesn't have 'scdivide' method!",
+				class->name);
 
 	va_list ap;
 	va_start(ap, _self);
-	superclass->scmulti(_self, &ap);
+	tclass->scdivide(_self, &ap);
 	va_end(ap);
+}
+
+void vscdivide(void *_self, va_list *ap)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->scdivide == NULL)
+		throw(TypeException(), "Scalar Divide Error: Type '%s' doesn't have 'scdivide' method!",
+				class->name);
+
+	tclass->scdivide(_self, ap);
 }
 
 // Swap values of two variables of some type
 void swap(void *_self, void *b)
 {
-	const struct TypeClass *class = cast(TypeClass(), classOf(_self));
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
 
-	assert(class->swap);
-	class->swap(_self, b);
-}
+	if (tclass->swap == NULL)
+		throw(TypeException(), "Swap Error: Type '%s' doesn't have 'swap' method!",
+				class->name);
 
-void super_swap(const void *_class, void *_self, void *b)
-{
-	const struct TypeClass *superclass = cast(TypeClass(), super(_class));
-
-	assert(superclass->swap);
-	superclass->swap(_self, b);
+	tclass->swap(_self, b);
 }
 
 /*
@@ -176,7 +264,8 @@ void super_swap(const void *_class, void *_self, void *b)
 
 ClassImpl(TypeClass)
 {
-	if (!_TypeClass) {
+	if (!_TypeClass) 
+	{
 		_TypeClass = new(Class(), "TypeClass", 
 				Class(), sizeof(struct TypeClass),
 				ctor, TypeClass_ctor,
@@ -184,4 +273,18 @@ ClassImpl(TypeClass)
 	}
 
 	return _TypeClass;
+}
+
+/*
+ * Exception Initialization
+ */
+
+ObjectImpl(TypeException)
+{
+	if (_TypeException)
+	{
+		_TypeException = new(ExceptionObject(), "TypeException");
+	}
+
+	return _TypeException;
 }

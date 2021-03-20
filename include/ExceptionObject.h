@@ -13,7 +13,7 @@ struct ExceptionObject
 	char *msg;
 };
 
-const char* exception_message(const void *self);
-const char* exception_name(const void *self);
+char* exception_message(const void *self);
+char* exception_name(const void *self);
 
 #endif /* end of include guard: EXCEPTIONOBJECT_H_OQI38Z0M */

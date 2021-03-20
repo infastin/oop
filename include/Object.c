@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "ExceptionObject.h"
 #include "Object.h"
 #include "Selectors.h"
 
@@ -12,7 +13,7 @@
  * Object
  */
 
-static void* Object_ctor(void *_self, va_list *props)
+static void* Object_ctor(void *_self, va_list *ap)
 {
 	return _self;
 }
@@ -20,6 +21,11 @@ static void* Object_ctor(void *_self, va_list *props)
 static void* Object_dtor(void *_self)
 {
 	return _self;
+}
+
+static void* Object_cpy(const void *_self, void *_object)
+{
+	return _object;
 }
 
 /*
@@ -118,14 +124,14 @@ int isOf(const void *_self, const void *class)
  * Class
  */
 
-static void* Class_ctor(void *_self, va_list *props)
+static void* Class_ctor(void *_self, va_list *ap)
 {
 	struct Class *self = _self;
 	const size_t offset = offsetof(struct Class, ctor);
 
-	self->name = va_arg(*props, char*);
-	self->super = va_arg(*props, struct Class*);
-	self->size = va_arg(*props, size_t);
+	self->name = va_arg(*ap, char*);
+	self->super = va_arg(*ap, struct Class*);
+	self->size = va_arg(*ap, size_t);
 
 	assert(self->super);
 
@@ -135,23 +141,26 @@ static void* Class_ctor(void *_self, va_list *props)
 
 	voidf selector;
 
-	va_list ap;
-	va_copy(ap, *props);
+	va_list ap_copy;
+	va_copy(ap_copy, *ap);
 
-	while ((selector = va_arg(ap, voidf)))
+	while ((selector = va_arg(ap_copy, voidf)))
 	{	
-		voidf method = va_arg(ap, voidf);
+		voidf method = va_arg(ap_copy, voidf);
 
 		if (selector == (voidf) ctor)
 			self->ctor = (ctor_f) method;
 		else if (selector == (voidf) dtor)
 			self->dtor = (dtor_f) method;
+		else if (selector == (voidf) cpy)
+			self->cpy = (cpy_f) method;
 		else if (selector == (voidf) set)
 			self->set = (set_f) method;
-		else if (selector == (voidf) get_vptr)
-			self->get_vptr = (get_vptr_f) method;
+		else if (selector == (voidf) get)
+			self->get = (get_f) method;
 	}
 
+	va_end(ap_copy);
 	return self;
 }
 
@@ -159,6 +168,13 @@ static void* Class_dtor(void *_self)
 {
 	struct Class *self = _self;
 	fprintf(stderr, "%s: cannot destroy class\n", self->name);
+	return 0;
+}
+
+static void* Class_cpy(const void *_self, void *_object)
+{
+	const struct Class *self = _self;
+	fprintf(stderr, "%s: cannot copy class\n", self->name);
 	return 0;
 }
 
@@ -172,13 +188,13 @@ static const struct Class _Class;
 static const struct Class _Object = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Object", &_Object, sizeof(struct Object),
-	Object_ctor, Object_dtor, NULL, NULL
+	Object_ctor, Object_dtor, Object_cpy, NULL, NULL
 };
 
 static const struct Class _Class = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Class", &_Object, sizeof(struct Class),
-	Class_ctor, Class_dtor, NULL, NULL
+	Class_ctor, Class_dtor, Class_cpy, NULL, NULL 
 };
 
 const void* const Object(void) {
@@ -188,4 +204,18 @@ const void* const Object(void) {
 const void* const Class(void)
 {
 	return &_Class;
+}
+
+/*
+ * Exception Initialization
+ */
+
+ObjectImpl(ObjectException)
+{
+	if (_ObjectException)
+	{
+		_ObjectException = new(ExceptionObject(), "ObjectException");
+	}
+
+	return _ObjectException;
 }

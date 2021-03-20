@@ -25,7 +25,6 @@ struct Exception
 {
 	const struct Object _;
 	const struct ExceptionObject *obj;
-	char    *msg;
 	size_t   depth;
 	int 	 active;
 	jmp_buf *buffers[EXCEPTION_MAX_DEPTH];
@@ -43,11 +42,9 @@ const void *exception_catch(void *self, ...);
 
 #define try { jmp_buf __env; exception_try(GlobalException(), &__env); if (!setjmp(__env))
 
-#define catch(...) catch_xp(catch_in, (__VA_ARGS__))
-#define catch_xp(X, A) X A
-#define catch_in(X, ...) else { exception_try_fail(GlobalException()); } exception_try_end(GlobalException()); } \
-	for (const void* X = exception_catch(GlobalException(), __VA_ARGS__); X != NULL; X = NULL)
+#define catch(e, ...) else { exception_try_fail(GlobalException()); } exception_try_end(GlobalException()); } \
+	for (const void* e = exception_catch(GlobalException(), __VA_ARGS__); e != NULL; e = NULL)
 
-#define throw(O, ...) exception_throw(GlobalException(), O, __VA_ARGS__)
+#define throw(object, fmt, ...) exception_throw(GlobalException(), object, fmt, ## __VA_ARGS__)
 
 #endif /* end of include guard: EXCEPTION_H_6E2ZCQYD */

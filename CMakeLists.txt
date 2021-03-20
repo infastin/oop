@@ -34,7 +34,6 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/Object.c
 			${INCLUDE_FOLDER}/TypeClass.c
 			${INCLUDE_FOLDER}/ReferenceCounter.c
-			${INCLUDE_FOLDER}/ReferenceCounter.c
 			${INCLUDE_FOLDER}/Exception.c
 			${INCLUDE_FOLDER}/ExceptionObject.c)
 
@@ -44,7 +43,8 @@ add_library(geometry STATIC
 target_link_libraries(geometry base)
 
 add_library(types STATIC
-			${TYPES_FOLDER}/IntType.c)
+			${TYPES_FOLDER}/IntType.c
+			${TYPES_FOLDER}/Matrix.c)
 target_link_libraries(types base)
 
 target_include_directories(base PUBLIC ${DIRS})
