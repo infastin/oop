@@ -30,7 +30,7 @@ struct Exception
 void exception_try(void *self, jmp_buf *env);
 void exception_try_end(void *self);
 void exception_try_fail(void *self);
-void exception_throw(void *self, const void *obj, char *fmt, ...);
+void exception_throw(void *self, const void *obj, char *file, int line, const char *func, char *fmt, ...);
 const void *exception_catch(void *self, ...);
 
 /*
@@ -42,6 +42,7 @@ const void *exception_catch(void *self, ...);
 #define catch(e, ...) else { exception_try_fail(GlobalException()); } exception_try_end(GlobalException()); } \
 	for (const void* e = exception_catch(GlobalException(), __VA_ARGS__); e != NULL; e = NULL)
 
-#define throw(object, fmt, ...) exception_throw(GlobalException(), object, fmt, ## __VA_ARGS__)
+#define throw(object, fmt, ...) exception_throw(GlobalException(), object, \
+		__FILE__, __LINE__, __FUNCTION__, fmt,  ## __VA_ARGS__)
 
 #endif /* end of include guard: EXCEPTION_H_6E2ZCQYD */

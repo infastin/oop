@@ -11,6 +11,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D'__LOGS__=\"${CMAKE_SOURCE_DIR}/logs\"'")
+
 if (MSVC)
 	add_compile_options(/O2 /J /Wall /std:c11 /GS)	
 else()
@@ -22,20 +24,24 @@ endif()
 
 set(INCLUDE_FOLDER include)
 set(TYPES_FOLDER ${INCLUDE_FOLDER}/Types)
+set(LEAKCHECK_FOLDER ${INCLUDE_FOLDER}/Leakcheck)
 
 set(DIRS 
 	${INCLUDE_FOLDER} 
 	${TYPES_FOLDER} 
-	${GEOMETRY_FOLDER})
+	${LEAKCHECK_FOLDER})
 
 add_library(base STATIC
 			${INCLUDE_FOLDER}/Selectors.c 
 			${INCLUDE_FOLDER}/Object.c
-			${INCLUDE_FOLDER}/TypeClass.c
 			${INCLUDE_FOLDER}/ReferenceCounter.c
+			${INCLUDE_FOLDER}/TypeClass.c
 			${INCLUDE_FOLDER}/Exception.c
 			${INCLUDE_FOLDER}/ExceptionObject.c
 			${INCLUDE_FOLDER}/Print.c)
+
+add_library(leakcheck STATIC
+	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
 
 add_library(types STATIC
 			${TYPES_FOLDER}/IntType.c

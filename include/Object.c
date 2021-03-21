@@ -35,7 +35,7 @@ const void* _isObject(const void *_self, char *file, int line)
 {
 	if (_self == NULL)
 	{
-		fprintf(stderr, "%s:%d: isObject error: given variable is NULL!", 
+		fprintf(stderr, "%s:%d: isObject: Error: given variable is NULL!", 
 				file, line);
 		exit(EXIT_FAILURE);
 	}
@@ -44,7 +44,7 @@ const void* _isObject(const void *_self, char *file, int line)
 
 	if (self->magic != MAGIC_NUM)
 	{
-		fprintf(stderr, "%s:%d: isObject error: given variable isn't object!",
+		fprintf(stderr, "%s:%d: isObject: Error: given variable isn't object!",
 				file, line);
 		exit(EXIT_FAILURE);
 	}
@@ -56,13 +56,13 @@ static void catch(int signal)
 {
 	if (signal == SIGBUS)
 	{
-		fprintf(stderr, "Cast error: Caught Bus Error, exiting!");
+		fprintf(stderr, "cast: Error: Caught Bus Error, exiting!");
 		exit(EXIT_FAILURE);
 	}
 	
 	if (signal == SIGSEGV)
 	{
-		fprintf(stderr, "Cast error: Caught Segmentation Fault, exiting!");
+		fprintf(stderr, "cast: Error: Caught Segmentation Fault, exiting!");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -86,7 +86,7 @@ void* _cast(const void *_class, const void *_self, char *file, int line)
 		{
 			if (p == Object())
 			{
-				fprintf(stderr, "%s:%d: cast error: Object '%s' can't be the object '%s'!\n", 
+				fprintf(stderr, "%s:%d: cast: Error: Object of class '%s' can't be the object of class '%s'!\n", 
 						file, line, myClass->name, class->name);
 				exit(EXIT_FAILURE);
 			}
@@ -103,41 +103,40 @@ void* _cast(const void *_class, const void *_self, char *file, int line)
 	return (void*) self;
 }
 
-const void* classOf(const void *_self)
+const void* _classOf(const void *_self, char* file, int line)
 {
-	const struct Object *self = cast(Object(), _self);
+	const struct Object *self = _cast(Object(), _self, file, line);
 
 	return self->class;
 }
 
-size_t sizeOf(const void *_self)
+size_t _sizeOf(const void *_self, char* file, int line)
 {
-	const struct Class *class = classOf(_self);
+	const struct Class *class = _classOf(_self, file, line);
 
 	return class->size;
 }
 
-int isA(const void *_self, const void *class)
+int _isA(const void *_self, const void *_class, char* file, int line)
 {
 	if (_self)
 	{
-		const struct Object *self = cast(Object(), _self);
-		cast(Object(), class);
+		const struct Object *self = _cast(Object(), _self, file, line);
+		const struct Object *class = _cast(Object(), _class, file, line);
 
-		return classOf(self) == class;
+		return _classOf(self, file, line) == class;
 	}
 
 	return 0;
 }
 
-int isOf(const void *_self, const void *class)
+int _isOf(const void *_self, const void *_class, char* file, int line)
 {
 	if (_self)
 	{
-		const struct Object *self = cast(Object(), _self);
-		const struct Class *myClass = classOf(self);
-
-		cast(Class, class);
+		const struct Object *self = _cast(Object(), _self, file, line);
+		const struct Class *myClass = _classOf(self, file, line);
+		const struct Class *class = _cast(Class(), _class, file, line);
 
 		if (class != Object())
 		{
@@ -171,7 +170,7 @@ static void* Class_ctor(void *_self, va_list *ap)
 
 	if (self->super == NULL)
 	{
-		fprintf(stderr, "Class Constructor Error: Superclass of object '%s' can't be NULL!\n", 
+		fprintf(stderr, "Class_ctor: Error: Superclass of class '%s' can't be NULL!\n", 
 				self->name);
 		exit(EXIT_FAILURE);
 	}
@@ -210,14 +209,14 @@ static void* Class_ctor(void *_self, va_list *ap)
 static void* Class_dtor(void *_self)
 {
 	struct Class *self = _self;
-	fprintf(stderr, "Class Destructor Error: can't destroy class '%s'!\n", self->name);
+	fprintf(stderr, "Class_dtor: Error: can't destroy class '%s'!\n", self->name);
 	return 0;
 }
 
 static void* Class_cpy(const void *_self, void *_object)
 {
 	const struct Class *self = _self;
-	fprintf(stderr, "Class Copy Error: can't copy class '%s'!\n", self->name);
+	fprintf(stderr, "Class_cpy: Error: can't copy class '%s'!\n", self->name);
 	return 0;
 }
 
@@ -232,14 +231,14 @@ static const struct Class _Object = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Object", &_Object, sizeof(struct Object),
 	Object_ctor, Object_dtor, Object_cpy, 
-	NULL, NULL, NULL
+	NULL, NULL, NULL, NULL
 };
 
 static const struct Class _Class = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Class", &_Object, sizeof(struct Class),
 	Class_ctor, Class_dtor, Class_cpy, 
-	NULL, NULL, NULL
+	NULL, NULL, NULL, NULL
 };
 
 const void* const Object(void) {

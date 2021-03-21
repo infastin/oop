@@ -171,7 +171,8 @@ static void Exception_error(struct Exception *self)
 {
 	fprintf(stderr, "\n");
 	fprintf(stderr, "*** Terminating app due to uncaught exception '%s'\n", self->obj->name);
-	fprintf(stderr, "[*] Reason: '%s'\n\n", self->obj->msg);
+	fprintf(stderr, "[*] At: %s:%d: %s\n", self->obj->file, self->obj->line, self->obj->func);
+	fprintf(stderr, "[*] Reason: %s\n\n", self->obj->msg);
 
 	Exception_backtrace();
 
@@ -215,7 +216,7 @@ const void* exception_catch(void *_self, ...)
 	return NULL;
 }
 
-void exception_throw(void *_self, const void *_obj, char *fmt, ...)
+void exception_throw(void *_self, const void *_obj, char *file, int line, const char *func, char *fmt,  ...)
 {
 	struct Exception *self = cast(Exception(), _self);
 	struct ExceptionObject *obj = cast(ExceptionObject(), _obj);
@@ -223,15 +224,22 @@ void exception_throw(void *_self, const void *_obj, char *fmt, ...)
 	if (obj->msg)
 		free(obj->msg);
 
-	va_list ap;
-
+	va_list ap, ap_copy;
+	
 	va_start(ap, fmt);
+	va_copy(ap_copy, ap);
 
 	size_t size = vsnprintf(NULL, 0, fmt, ap);
 	obj->msg = (char*)calloc(sizeof(char), size + 1);
-	vsnprintf(obj->msg, size + 1, fmt, ap);
-
+	vsnprintf(obj->msg, size + 1, fmt, ap_copy);
+	
+	va_end(ap_copy);
 	va_end(ap);
+
+	obj->file = file;
+	obj->line = line;
+	obj->func = func;
+
 	self->obj = obj;
 
 	if(self->depth >= 1)

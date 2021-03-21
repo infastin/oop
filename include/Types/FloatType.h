@@ -8,7 +8,7 @@ ClassHeader(Float);
 struct FloatType
 {
 	const struct Object _;
-	double value;
+	double value; // I'm still float
 };
 
 #endif /* end of include guard: FLOATTYPE_H_W5JT1URA */

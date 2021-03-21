@@ -10,6 +10,9 @@ struct ExceptionObject
 	const struct Object _;
 	char *name;
 	char *msg;
+	char *file;
+	int   line;
+	const char *func;
 };
 
 char* exception_message(const void *self);

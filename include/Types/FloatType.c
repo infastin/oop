@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "Selectors.h"
 #include "FloatType.h"
@@ -134,6 +135,73 @@ static char* FloatType_stringer(const void *_self, va_list *ap)
 	return result;
 }
 
+static int FloatType_reader(const char *str, va_list *ap)
+{
+	// Declarations
+	var *result;
+	int number, count;
+	int ignore, width; 
+
+	FILE *stream = NULL;
+
+	va_list ap_copy;
+	va_copy(ap_copy, *ap);
+
+	if (str == NULL)
+		stream = va_arg(ap_copy, FILE*);
+
+	ignore = va_arg(ap_copy, int);
+	width = va_arg(ap_copy, int);
+	result = va_arg(ap_copy, var*);
+
+	// Getting format size
+	size_t fmt_size = 3;
+
+	if (ignore != -1)
+		fmt_size++;
+
+	if (width != -1)
+		fmt_size += snprintf(NULL, 0, "%d", width);
+
+	// Getting format
+	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
+	*fmt = '%';
+	
+	char *p = fmt + 1;
+	size_t psize = fmt_size - 1;
+
+	if (ignore != -1)
+	{
+		*p++ = '*';
+		psize--;
+	}
+
+	if (width != -1)
+	{
+		int widthN = snprintf(p, psize + 1, "%d", width);
+		p += widthN;
+		psize -= widthN;
+	}
+
+	*p++ = 'l';
+	*p++ = 'f';
+	*p = 0;
+
+	// Getting result
+	if (stream != NULL)
+		count = fscanf(stream, fmt, &number);
+	else
+		count = sscanf(str, fmt, &number);
+	
+	if (count != 0)
+		*result = new(Float(), number);
+
+	free(fmt);
+	va_end(ap_copy);
+
+	return count;
+}
+
 static void* FloatType_sum(void *_self, void *b)
 {
 	const struct FloatType *self = cast(Float(), _self);
@@ -210,6 +278,56 @@ static void FloatType_scdivide(void *_self, va_list *ap)
 	self->value /= sc;
 }
 
+static void* FloatType_inverse_add(void *_self)
+{
+	struct FloatType *obj = cast(Float(), copy(_self));
+	scmulti(obj, (double) -1.00);
+
+	return obj;
+}
+
+static void* FloatType_inverse_multi(void *_self)
+{
+	struct FloatType *obj = cast(Float(), copy(_self));
+	
+	double val;
+	get(obj, &val);
+	val = 1 / val;
+	set(obj, val);
+
+	return obj;
+}
+
+static void* FloatType_rnd(void *_self, va_list *ap)
+{
+	struct FloatType *self;
+
+	if (_self)
+		self = cast(Float(), _self);
+	else
+		self = new(Float(), (double) 0.00);
+
+	unsigned int max = va_arg(*ap, unsigned int);
+	int negative = va_arg(*ap, int);
+
+	double random = ((double) rand() / (double) RAND_MAX);
+
+	if (negative == 1)
+		random -= ((double) rand() / (double) RAND_MAX);
+
+	if (max == 0)
+		random *= rand();
+	else
+		random *= max;
+
+	if (random == (double) max)
+		random *= ((double) rand() / (double) RAND_MAX);
+
+	self->value = random;
+
+	return self;
+}
+
 
 /*
  * Initialization
@@ -228,6 +346,7 @@ ClassImpl(Float)
 				cmp, FloatType_cmp,
 				swap, FloatType_swap,
 				stringer, FloatType_stringer,
+				reader, FloatType_reader,
 				sum, FloatType_sum,
 				subtract, FloatType_subtract,
 				product, FloatType_product,
@@ -236,6 +355,9 @@ ClassImpl(Float)
 				scsub, FloatType_scsub,
 				scmulti, FloatType_scmulti,
 				scdivide, FloatType_scdivide,
+				inverse_add, FloatType_inverse_add,
+				inverse_multi, FloatType_inverse_multi,
+				rnd, FloatType_rnd,
 				0);
 	}
 

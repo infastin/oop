@@ -14,6 +14,8 @@ static void* ExceptionObject_ctor(void *_self, va_list *ap)
 
 	self->name = va_arg(*ap, char*);
 	self->msg = NULL;
+	self->file = NULL;
+	self->line = 0;
 
 	return self;
 }

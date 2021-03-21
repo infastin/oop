@@ -2,32 +2,21 @@
 #include <time.h>
 
 #include "Init.h"
+#include "limits.h"
 
 int main(int argc, char *argv[])
 {
-	smart var matrix1 = new(Matrix(), Int(), 3, 3);
-	
+	smart var matrix1 = new(Matrix(), Float(), 2, 2);
+
 	srand(time(0));	
 
-	for (int i = 0; i < 3; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			int ran1 = rand() % 100;
-			set(matrix1, i, j, ran1);
-			printf("%d ", ran1);
-		}
+	rnd(Matrix(), matrix1, 100);
 
-		printf("\n");
-	}
+	oprintf("%8.2m\n", matrix1);
 
-	int det;
+	var det;
 	determinant(matrix1, &det);
-	printf("%d\n", det);
-
-	var tmp = new(Float(), 45.00);
-
-	oprintf("%v\n%07m", tmp, matrix1);
+	oprintf("%f\n", det);
 
 	return 0;
 }

@@ -5,9 +5,11 @@
 
 #include "Exception.h"
 #include "Matrix.h"
+#include "Print.h"
 #include "ReferenceCounter.h"
 #include "Selectors.h"
 #include "IntType.h"
+#include "TypeClass.h"
 
 /*
  * MatrixClass
@@ -49,7 +51,7 @@ void* minorOf(const void *_self, ...)
 	const struct Class *class = _self;
 
 	if (mclass->minorOf == NULL)
-		throw(MatrixException(), "MinorOf Error: Matrix '%s' doesn't have 'minorOf' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'minorOf' method!",
 				class->name);
 
 	va_list ap;
@@ -66,7 +68,7 @@ void* vminorOf(const void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (mclass->minorOf == NULL)
-		throw(MatrixException(), "MinorOf Error: Matrix '%s' doesn't have 'minorOf' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'minorOf' method!",
 				class->name);
 
 	return mclass->minorOf(_self, ap);
@@ -78,7 +80,7 @@ void matrix_size(const void *_self, ...)
 	const struct Class *class = _self;
 
 	if (mclass->matrix_size == NULL)
-		throw(MatrixException(), "Matrix Size Error: Matrix '%s' doesn't have 'matrix_size' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'matrix_size' method!",
 				class->name);
 
 	va_list ap;
@@ -93,7 +95,7 @@ void vmatrix_size(const void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (mclass->matrix_size == NULL)
-		throw(MatrixException(), "Matrix Size Error: Matrix '%s' doesn't have 'matrix_size' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'matrix_size' method!",
 				class->name);
 
 	mclass->matrix_size(_self, ap);
@@ -105,7 +107,7 @@ void determinant(const void *_self, ...)
 	const struct Class *class = _self;
 
 	if (mclass->determinant == NULL)
-		throw(MatrixException(), "Determinant Error: Matrix '%s' doesn't have 'determinant' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'determinant' method!",
 				class->name);
 
 	va_list ap;
@@ -120,7 +122,7 @@ void vdeterminant(const void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (mclass->determinant == NULL)
-		throw(MatrixException(), "Determinant Error: Matrix '%s' doesn't have 'determinant' method!",
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'determinant' method!",
 				class->name);
 
 	mclass->determinant(_self, ap);
@@ -132,19 +134,26 @@ void vdeterminant(const void *_self, va_list *ap)
 
 static void* Matrix_ctor(void *_self, va_list *ap)
 {
-	smart struct Matrix *self = super_ctor(Matrix(), _self, ap);
+	struct Matrix *self = super_ctor(Matrix(), _self, ap);
+
+	unsigned int columns, rows;
 
 	va_list ap_copy;
 	va_copy(ap_copy, *ap);
 
 	self->type = cast(TypeClass(), va_arg(ap_copy, void*));
-	self->rows = va_arg(ap_copy, unsigned int);
-	self->columns = va_arg(ap_copy, unsigned int);
+	rows = va_arg(ap_copy, unsigned int);
+	columns = va_arg(ap_copy, unsigned int);
 	self->mass = NULL;
 
-	if (self->rows == 0 || self->columns == 0)
-		throw(MatrixException(), "Constructor Error: Can't create matrix with zero rows or columns! (%u, %u)",
-				self->rows, self->columns);
+	if (rows == 0 || columns == 0) {
+		delete(self);
+		throw(MatrixException(), "Error: Can't create matrix with zero rows or columns! (%u, %u)",
+				rows, columns);
+	}
+
+	self->rows = rows;
+	self->columns = columns;
 
 	void ***mass;
 
@@ -169,7 +178,7 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 	va_end(ap_copy);
 	self->mass = mass;
 
-	return retain(self);
+	return self;
 }
 
 static void* Matrix_cpy(const void *_self, void *_object)
@@ -217,7 +226,7 @@ static void Matrix_set(void *_self, va_list *ap)
 	unsigned int column = va_arg(*ap, unsigned int);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "Set Error: Element at (%u, %u) is out of bounds!", 
+		throw(MatrixException(), "Error: Element at (%u, %u) is out of bounds!", 
 				row, column);
 
 	if (self->mass[row][column] == NULL)
@@ -234,11 +243,11 @@ static void Matrix_get(void *_self, va_list *ap)
 	unsigned int column = va_arg(*ap, unsigned int);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "Get Error: Element at (%u, %u) is out of bounds!", 
+		throw(MatrixException(), "Error: Element at (%u, %u) is out of bounds!", 
 				row, column);
 
 	if (self->mass[row][column] == NULL)
-		throw(MatrixException(), "Get Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+		throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
 				row, column);
 
 	vget(self->mass[row][column], ap);
@@ -334,12 +343,12 @@ static void* Matrix_sum(void *_self, void *b)
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
-		throw(MatrixException(), "Sum Error: Trying to sum matrices with different types! (%s and %s)", 
+		throw(MatrixException(), "Error: Trying to sum matrices with different types! (%s and %s)", 
 				self_type_class->name, B_type_class->name);
 	}
 
 	if (self->rows != B->rows && self->columns != B->columns)
-		throw(MatrixException(), "Sum Error: Trying to sum matrices with different dimensions! (%ux%u and %ux%u)", 
+		throw(MatrixException(), "Error: Trying to sum matrices with different dimensions! (%ux%u and %ux%u)", 
 				self->rows, self->columns, B->rows, B->columns);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
@@ -365,12 +374,12 @@ static void* Matrix_subtract(void *_self, void *b)
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
-		throw(MatrixException(), "Subtract Error: Trying to subtract matrices with different types! (%s and %s)", 
+		throw(MatrixException(), "Error: Trying to subtract matrices with different types! (%s and %s)", 
 				self_type_class->name, B_type_class->name);
 	}
 
 	if (self->rows != B->rows && self->columns != B->columns)
-		throw(MatrixException(), "Subtract Error: Trying to subtract matrices with different dimensions! (%ux%u and %ux%u)", 
+		throw(MatrixException(), "Error: Trying to subtract matrices with different dimensions! (%ux%u and %ux%u)", 
 				self->rows, self->columns, B->rows, B->columns);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
@@ -396,12 +405,12 @@ static void* Matrix_product(void *_self, void *b)
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
-		throw(MatrixException(), "Product Error: Trying to multiply matrices with different types! (%s and %s)", 
+		throw(MatrixException(), "Error: Trying to multiply matrices with different types! (%s and %s)", 
 				self_type_class->name, B_type_class->name);
 	}
 
 	if (self->columns != B->rows)
-		throw(MatrixException(), "Product Error: Trying to multiply matrices with different columns and rows number! (%u and %u)", 
+		throw(MatrixException(), "Error: Trying to multiply matrices with different columns and rows number! (%u and %u)", 
 				self->columns, B->rows);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, B->columns);
@@ -444,7 +453,7 @@ static void Matrix_scmulti(void *_self, va_list *ap)
 		for (int j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
-				throw(MatrixException(), "Scalar Multiply Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
 						i, j);
 
 			va_list ap_copy_copy;
@@ -467,7 +476,7 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 		for (int j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
-				throw(MatrixException(), "Scalar Divide Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
 						i, j);
 
 			va_list ap_copy_copy;
@@ -486,7 +495,7 @@ static void* Matrix_minorOf(const void *_self, va_list *ap)
 	unsigned int column = va_arg(*ap, unsigned int);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "MinorOf Error: No such row or/and column with given indexes (%u, %u) in given matrix! (Max: %u, %u)",
+		throw(MatrixException(), "Error: No such row or/and column with given indexes (%u, %u) in given matrix! (Max: %u, %u)",
 				row, column, self->rows - 1, self->columns - 1);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows - 1, self->columns - 1);
@@ -529,47 +538,96 @@ static void Matrix_determinant(const void *_self, va_list *ap)
 	const struct Matrix *self = cast(Matrix(), _self);
 
 	if (self->rows != self->columns)
-		throw(MatrixException(), "Determinant Error: Can't get determinant of not square matrix! (%u, %u)",
+		throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
 				self->rows, self->columns);
 
-	int *result = va_arg(*ap, int*);
-	*result = 0;
+	var result = NULL;
+	var *out = va_arg(*ap, var*);
 
-	if (self->rows == 2 && self->columns == 2)
+	if (self->rows == 1 && self->columns == 1)
+	{
+		result = copy(self->mass[0][0]);
+	}
+	else if (self->rows == 2 && self->columns == 2)
 	{
 		smart var prod1 = product(self->mass[0][0], self->mass[1][1]);
 		smart var prod2 = product(self->mass[0][1], self->mass[1][0]);
 		smart var sub = subtract(prod1, prod2);
 
-		get(sub, result);
+		result = retain(sub);
 	}
 	else
 	{
 		for (int j = 0; j < self->columns; j++)
 		{
-			int res;
+			var res;
 			smart var minor = minorOf(_self, 0, j);
 			determinant(minor, &res);
 
 			if (j % 2 == 0)
 			{
-				int val;
-				get(self->mass[0][j], &val);
+				smart var prod = product(self->mass[0][j], res);
 
-				(*result) += val * res;
+				if (result)
+				{
+					smart var summ = sum(result, prod);
+					delete(result);
+					result = retain(summ);
+				}
+				else
+				{
+					result = retain(prod);
+				}
 			}
 			else
 			{
-				smart var tmp_int = copy(self->mass[0][j]);
-				scmulti(tmp_int, -1);
-
-				int val;
-				get(tmp_int, &val);
-
-				(*result) += val * res;
+				smart var tmp = inverse_add(self->mass[0][j]);
+				smart var prod = product(tmp, res);
+				
+				if (result)
+				{
+					smart var summ = sum(result, prod);
+					delete(result);
+					result = retain(summ);
+				}
+				else
+				{
+					result = retain(prod);
+				}			
 			}
 		}
 	}
+
+	*out = result;
+}
+
+static void* Matrix_rnd(void *_self, va_list *ap)
+{
+	struct Matrix *self;
+
+	if (_self)
+		self = cast(Matrix(), _self);
+	else
+	{
+		const void *type = cast(TypeClass(), va_arg(*ap, void*));
+		unsigned int rows = va_arg(*ap, unsigned int);
+		unsigned int columns = va_arg(*ap, unsigned int);
+
+		self = new(Matrix(), type, rows, columns);
+	}
+
+	for (int i = 0; i < self->rows; ++i) 
+	{
+		for (int j = 0; j < self->columns; j++) 
+		{
+			va_list ap_copy;
+			va_copy(ap_copy, *ap);
+			self->mass[i][j] = vrnd(self->type, self->mass[i][j], &ap_copy);
+			va_end(ap_copy);
+		}
+	}
+
+	return self;
 }
 
 /*
@@ -593,7 +651,7 @@ ClassImpl(Matrix)
 {
 	if (!_Matrix)
 	{
-		_Matrix = new(MatrixClass(), "MatrixClass",
+		_Matrix = new(MatrixClass(), "Matrix",
 				Object(), sizeof(struct Matrix),
 				ctor, Matrix_ctor,
 				dtor, Matrix_dtor,
@@ -609,6 +667,7 @@ ClassImpl(Matrix)
 				minorOf, Matrix_minorOf,
 				matrix_size, Matrix_matrix_size,
 				determinant, Matrix_determinant,
+				rnd, Matrix_rnd,
 				0);
 	}
 

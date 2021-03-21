@@ -7,6 +7,59 @@
 #include "Selectors.h"
 
 /*
+ * Logging
+ */
+
+static FILE *sel_log = NULL;
+
+void sellog(char *fmt, char *file, int line, const char* func, ...)
+{
+	if (sel_log == NULL)
+		sel_log = fopen(__LOGS__"/sel_log.txt", "a+");
+
+	if (sel_log != NULL)
+	{
+		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		char *dt = (char*)calloc(sizeof(char), dt_size + 1);
+		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+
+		va_list ap;
+		va_start(ap, func);
+
+		vfprintf(sel_log, dt, ap);
+		fputc('\n', sel_log);
+
+		va_end(ap);
+		free(dt);
+	}
+}
+
+void selerror(char *fmt, char *file, int line, const char *func, ...)
+{
+	if (sel_log == NULL)
+		sel_log = fopen(__LOGS__"/sel_log.txt", "a+");
+
+	if (sel_log != NULL)
+	{
+		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		char *dt = (char*)calloc(sizeof(char), dt_size + 1);
+		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+
+		va_list ap;
+		va_start(ap, func);
+
+		vfprintf(sel_log, dt, ap);
+		fputc('\n', sel_log);
+		
+		fprintf(stderr, dt, ap);
+		fputc('\n', stderr);
+
+		va_end(ap);
+		free(dt);
+	}
+}
+
+/*
  * Create and delete selectors
  */
 
@@ -17,8 +70,8 @@ void* _new(const void *_class, char *file, int line, ...)
 
 	if (class->size == 0)
 	{
-		fprintf(stderr, "%s:%d: new error: Object '%s' can't have zero size!\n", 
-				file, line, class->name);
+		selerror("Error: Object of class '%s' can't have zero size!", 
+				file, line, "new", class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -26,8 +79,8 @@ void* _new(const void *_class, char *file, int line, ...)
 
 	if (object == NULL)
 	{
-		fprintf(stderr, "%s:%d: new fatal error: Object '%s' allocation error!\n",
-				file, line, class->name);
+		selerror("Fatal Error: Object of class '%s' allocation error!", 
+				file, line, "new", class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -40,7 +93,10 @@ void* _new(const void *_class, char *file, int line, ...)
 	va_start(ap, line);
 	object = ctor(object, &ap);
 	va_end(ap);
-	
+
+	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
+			file, line, "new", class->name, class->size);
+
 	return object;
 }
 
@@ -51,8 +107,8 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 
 	if (class->size == 0)
 	{
-		fprintf(stderr, "%s:%d: vnew error: Object '%s' can't have zero size!\n", 
-				file, line, class->name);
+		selerror("Error: Object of class '%s' can't have zero size!", 
+				file, line, "vnew", class->name);
 		exit(EXIT_FAILURE);
 	}	
 
@@ -60,9 +116,10 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 
 	if (object == NULL)
 	{
-		fprintf(stderr, "%s:%d: vnew fatal error: Object '%s' allocation error!\n",
-				file, line, class->name);
+		selerror("Fatal Error: Object of class '%s' allocation error!", 
+				file, line, "vnew", class->name);
 		exit(EXIT_FAILURE);
+
 	}
 
 	object->magic = MAGIC_NUM;
@@ -71,13 +128,27 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 
 	object = ctor(object, ap);
 
+	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
+			file, line, "vnew", class->name, class->size);	
+
 	return object;
 }
 
-void delete(void *_self)
+void _delete(void *_self, char *file, int line)
 {
-	if (_self)
+	if (_self) {
+		const struct Class *class = classOf(_self);
+
+		const char *name = class->name;
+		size_t size = class->size;
+		sellog("Trying to delete object of class '%s' with the size of '%lu' bytes.", 
+				file, line, "delete", name, size);
+
 		free(dtor(_self));
+
+		sellog("Deleted object of class '%s' with the size of '%lu' bytes.", 
+				file, line, "delete", name, size);
+	}
 }
 
 
@@ -89,8 +160,8 @@ void* _copy(const void *_self, char *file, int line)
 
 	if (class->size == 0)
 	{
-		fprintf(stderr, "%s:%d: copy error: Object '%s' can't have zero size!\n", 
-				file, line, class->name);
+		selerror("Error: Object of class '%s' can't have zero size!", 
+				file, line, __FUNCTION__, class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -98,8 +169,8 @@ void* _copy(const void *_self, char *file, int line)
 
 	if (object == NULL)
 	{
-		fprintf(stderr, "%s:%d: copy fatal error: Object '%s' allocation error!\n",
-				file, line, class->name);
+		selerror("Fatal Error: Object of class '%s' allocation error!", 
+				file, line, "copy", class->name);
 		exit(EXIT_FAILURE);
 	}
 	
@@ -108,7 +179,15 @@ void* _copy(const void *_self, char *file, int line)
 	unsigned int ref_count = atomic_load((atomic_uint *) &self->ref_count);
 	atomic_init((atomic_uint*) &object->ref_count, ref_count);
 
-	return cpy(_self, object);
+	sellog("Trying to copy object of class '%s' with the size '%lu' bytes.", 
+			file, line, "copy", class->name, class->size);
+	
+	void *res = cpy(_self, object);
+	
+	sellog("Copied object of class '%s' with the size '%lu' bytes.", 
+			file, line, "copy", class->name, class->size);
+
+	return res;
 }
 
 /*
@@ -121,7 +200,7 @@ void* dtor(void *_self)
 
 	if (class->dtor == NULL)
 	{
-		fprintf(stderr, "Destructor Error: Class '%s' doesn't have 'dtor' method!\n",
+		fprintf(stderr, "dtor: Error: Class '%s' doesn't have 'dtor' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -135,7 +214,7 @@ void* ctor(void *_self, va_list *ap)
 
 	if (class->dtor == NULL)
 	{
-		fprintf(stderr, "Constructor Error: Class '%s' doesn't have 'ctor' method!\n",
+		fprintf(stderr, "ctor: Error: Class '%s' doesn't have 'ctor' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -149,7 +228,7 @@ void set(void *_self, ...)
 
 	if (class->set == NULL) 
 	{
-		fprintf(stderr, "Set Error: Class '%s' doesn't have 'set' method!\n",
+		fprintf(stderr, "set: Error: Class '%s' doesn't have 'set' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -167,7 +246,7 @@ void vset(void *_self, va_list *ap)
 
 	if (class->set == NULL) 
 	{
-		fprintf(stderr, "VSet Error: Class '%s' doesn't have 'set' method!\n",
+		fprintf(stderr, "vset: Error: Class '%s' doesn't have 'set' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -182,7 +261,7 @@ void get(const void *_self, ...)
 
 	if (class->get == NULL) 
 	{
-		fprintf(stderr, "Get Error: Class '%s' doesn't have 'get' method!\n",
+		fprintf(stderr, "get: Error: Class '%s' doesn't have 'get' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -200,7 +279,7 @@ void vget(const void *_self, va_list *ap)
 
 	if (class->get == NULL) 
 	{
-		fprintf(stderr, "VGet Error: Class '%s' doesn't have 'get' method!\n",
+		fprintf(stderr, "vget: Error: Class '%s' doesn't have 'get' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -214,7 +293,7 @@ void* cpy(const void *_self, void *object)
 
 	if (class->cpy == NULL) 
 	{
-		fprintf(stderr, "Copy Error: Class '%s' doesn't have 'cpy' method!\n",
+		fprintf(stderr, "cpy: Error: Class '%s' doesn't have 'cpy' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -222,13 +301,14 @@ void* cpy(const void *_self, void *object)
 	return class->cpy(_self, object);
 }
 
+// Get string representation of variable of some type
 char* stringer(const void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
 
 	if (class->stringer == NULL) 
 	{
-		fprintf(stderr, "Stringer Error: Class '%s' doesn't have 'stringer' method!\n",
+		fprintf(stderr, "stringer: Error: Class '%s' doesn't have 'stringer' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -248,14 +328,48 @@ char* vstringer(const void *_self, va_list *ap)
 
 	if (class->stringer == NULL) 
 	{
-		fprintf(stderr, "Stringer Error: Class '%s' doesn't have 'stringer' method!\n",
+		fprintf(stderr, "vstringer: Error: Class '%s' doesn't have 'stringer' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	char *result = class->stringer(_self, ap);
+	return class->stringer(_self, ap);
+}
+
+// Read one variable of some type from string
+// or from stream, if str == NULL (stream should be given after str)
+int reader(const void *_self, const char *str, ...)
+{
+	const struct Class *class = classOf(_self);
+
+	if (class->reader == NULL) 
+	{
+		fprintf(stderr, "reader: Error: Class '%s' doesn't have 'reader' method!\n",
+				class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	va_list ap;
+
+	va_start(ap, str);
+	int result = class->reader(str, &ap);
+	va_end(ap);
 
 	return result;
+}
+
+int vreader(const void *_self, const char *str, va_list *ap)
+{
+	const struct Class *class = classOf(_self);
+
+	if (class->reader == NULL) 
+	{
+		fprintf(stderr, "vreader: Error: Class '%s' doesn't have 'reader' method!\n",
+				class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	return class->reader(str, ap);
 }
 
 /*
@@ -268,7 +382,7 @@ const void* super(const void *_self)
 
 	if (self->super == NULL) 
 	{
-		fprintf(stderr, "Super Error: Class '%s' doesn't have superclass!\n",
+		fprintf(stderr, "super: Error: Class '%s' doesn't have superclass!\n",
 				self->name);
 		exit(EXIT_FAILURE);
 	}
@@ -282,7 +396,7 @@ void* super_ctor(const void *_class, void *_self, va_list *ap)
 
 	if (superclass->ctor == NULL) 
 	{
-		fprintf(stderr, "Super Constructor Error: Superclass '%s' doesn't have 'ctor' method!\n",
+		fprintf(stderr, "super_ctor: Error: Superclass '%s' doesn't have 'ctor' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}
@@ -296,7 +410,7 @@ void* super_dtor(const void *_class, void *_self)
 
 	if (superclass->dtor == NULL) 
 	{
-		fprintf(stderr, "Super Destructor Error: Superclass '%s' doesn't have 'dtor' method!\n",
+		fprintf(stderr, "super_dtor: Error: Superclass '%s' doesn't have 'dtor' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}	
@@ -311,7 +425,7 @@ void* super_cpy(const void *_class, const void *_self, void *object)
 
 	if (superclass->cpy == NULL) 
 	{
-		fprintf(stderr, "Super Copy Error: Superclass '%s' doesn't have 'cpy' method!\n",
+		fprintf(stderr, "super_cpy: Error: Superclass '%s' doesn't have 'cpy' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}		

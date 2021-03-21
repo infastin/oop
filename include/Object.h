@@ -29,13 +29,14 @@
 ClassHeader(Object);
 ClassHeader(Class);
 
-typedef void 	(*voidf)(void);
-typedef void   *(*ctor_f)(void *self, va_list *ap);
-typedef void   *(*cpy_f)(const void *self, void *object);
-typedef void   *(*dtor_f)(void *self);
-typedef void 	(*set_f)(void *self, va_list *ap);
-typedef void   *(*get_f)(const void *self, va_list *ap);
-typedef char   *(*stringer_f)(const void *self, va_list *ap);
+typedef void  (*voidf)(void);
+typedef void *(*ctor_f)(void *self, va_list *ap);
+typedef void *(*cpy_f)(const void *self, void *object);
+typedef void *(*dtor_f)(void *self);
+typedef void  (*set_f)(void *self, va_list *ap);
+typedef void *(*get_f)(const void *self, va_list *ap);
+typedef char *(*stringer_f)(const void *self, va_list *ap);
+typedef int   (*reader_f)(const char *str,  va_list *ap);
 
 struct Object
 {
@@ -58,16 +59,23 @@ struct Class
 	set_f set;
 	get_f get;
 	stringer_f stringer;
+	reader_f reader;
 };
 
-const void* classOf(const void *self);
 const void* _isObject(const void *self, char* file, int line);
-size_t sizeOf(const void *self);
 void*  _cast(const void *class, const void* self, char *file, int line);
-int    isA(const void *self, const void *class);
-int    isOf(const void *self, const void *class);
+
+const void* _classOf(const void *self, char* file, int line);
+size_t _sizeOf(const void *self, char* file, int line);
+int    _isA(const void *self, const void *class, char* file, int line);
+int    _isOf(const void *self, const void *class, char* file, int line);
 
 #define isObject(self) _isObject(self, __FILE__, __LINE__)
 #define cast(class, self) _cast(class, self, __FILE__, __LINE__)
+
+#define classOf(self) _classOf(self, __FILE__, __LINE__)
+#define sizeOf(self) _sizeOf(self, __FILE__, __LINE__)
+#define isA(self, class) _isA(self, class, __FILE__, __LINE__)
+#define isOf(self, class) _isOf(self, class, __FILE__, __LINE__)
 
 #endif /* end of include guard: OBJECT_H_76AZNMVF */

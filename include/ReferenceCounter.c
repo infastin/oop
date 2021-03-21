@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,32 +8,31 @@
 #include "Selectors.h"
 
 /*
- * Stack of freed objects
+ * Logging
  */
 
-#define STACK_SIZE 32
+static FILE *ref_log = NULL;
 
-static void* last_freed[STACK_SIZE];
-static unsigned int lf_count = 0;
-static unsigned int lf_index = 0;
-
-static inline void lf_push(void *ptr)
+void reflog(char *fmt, ...)
 {
-	if (lf_count < STACK_SIZE)
-		lf_count++;
-	
-	if (lf_index == STACK_SIZE)
-		lf_index = 0;
+	if (ref_log == NULL)
+		ref_log = fopen(__LOGS__"/ref_log.txt", "a+");
 
-	last_freed[lf_index++] = ptr;
-}
+	if (ref_log != NULL)
+	{
+		size_t dt_size = snprintf(NULL, 0, "%s %s: %s", __DATE__, __TIME__, fmt);
+		char *dt = (char*)calloc(sizeof(char), dt_size + 1);
+		snprintf(dt, dt_size + 1, "%s %s: %s", __DATE__, __TIME__, fmt);
 
-static inline int lf_exists(void *ptr)
-{
-	for (int i = 0; i < lf_count; i++)
-		if (last_freed[i] == ptr) return 1;
+		va_list ap;
+		va_start(ap, fmt);
 
-	return 0;
+		vfprintf(ref_log, dt, ap);
+		fputc('\n', ref_log);
+
+		va_end(ap);
+		free(dt);
+	}
 }
 
 /*
@@ -47,21 +47,26 @@ inline void release(void *_self_ptr) {
 	} conv;
 
 	conv.ptr = _self_ptr;
+	struct Object *self = *conv.real_ptr;
 
-	if (*conv.real_ptr && !lf_exists(*conv.real_ptr)) {
-		struct Object *self = cast(Object(), *conv.real_ptr);
+	if (self != NULL && self->magic == MAGIC_NUM) 
+	{
 		const struct Class *class = self->class;
 
 		if (self->ref_count <= 0)
 		{
-			fprintf(stderr, "Reference Counter Error: Can't destroy object '%s' with zero reference count!\n", 
+			fprintf(stderr, "Reference Counter: Error: Can't destroy object of class '%s' with zero reference count!\n", 
+					class->name);
+
+			reflog("Error: Can't destroy object of class '%s' with zero reference count!", 
 					class->name);
 			return;
 		}
 
 		if (atomic_fetch_sub((atomic_uint*) &self->ref_count, 1) == 1) 
 		{
-			lf_push(*conv.real_ptr);
+			reflog("Released object of class '%s' with the size of '%d' bytes.", 
+					class->name, class->size);
 			delete(*conv.real_ptr);
 			*conv.real_ptr = NULL;
 		}
@@ -76,10 +81,16 @@ void* retain(void *_self)
 
 	if (self->ref_count <= 0)
 	{
-		fprintf(stderr, "Reference Counter Error: Can't retain object '%s' with zero reference count!\n", 
+		fprintf(stderr, "Reference Counter: Error: Can't retain object of class '%s' with zero reference count!\n", 
+				class->name);
+
+		reflog("Error: Can't retain object of class '%s' with zero reference count!\n", 
 				class->name);
 		return NULL;
 	}
+
+	reflog("Retained object of class '%s' with the size of '%d' bytes.", 
+			class->name, class->size);
 
 	atomic_fetch_add((atomic_uint*) &self->ref_count, 1);
 

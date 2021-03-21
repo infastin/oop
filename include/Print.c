@@ -12,22 +12,26 @@
 #include "Selectors.h"
 
 // Print object
-void oprintf(const char *fmt, ...)
+int _oprintf(const char *fmt, char *file, int line, ...)
 {
 	const char *p;
 
 	va_list ap;
-	va_start(ap, fmt);
+	va_start(ap, line);
 
 	int flag = -1,
 		length = -1,
 		width = -1,
 		precision = -1;
 
+	int result = 0;;
+	
 	for (p = fmt; *p; p++)
 	{
-		if (*p != '%')
+		if (*p != '%') {
+			result++;
 			putchar(*p);
+		}
 		else
 		{
 			p++;
@@ -83,13 +87,13 @@ void oprintf(const char *fmt, ...)
 						}
 						else
 						{
-							throw(PrintException(), "Object Printf Error: Too big width! (Higher than %d)",
+							throw(PrintException(), "Error: Too big width! (Higher than %d)",
 									INT_MAX);
 						}
 					}
 					else
 					{
-						throw(PrintException(), "Object Printf Error: Too big width! (Higher than %d)",
+						throw(PrintException(), "Error: Too big width! (Higher than %d)",
 								INT_MAX);
 					}
 				}
@@ -121,13 +125,13 @@ void oprintf(const char *fmt, ...)
 							}
 							else
 							{
-								throw(PrintException(), "Object Printf Error: Too big precision! (Higher than %d)",
+								throw(PrintException(), "Error: Too big precision! (Higher than %d)",
 										INT_MAX);
 							}
 						}
 						else
 						{
-							throw(PrintException(), "Object Printf Error: Too big precision! (Higher than %d)",
+							throw(PrintException(), "Error: Too big precision! (Higher than %d)",
 									INT_MAX);
 						}
 					}
@@ -155,35 +159,39 @@ void oprintf(const char *fmt, ...)
 
 			if (*p == 'd' || *p == 'i')
 			{
-				var type = cast(Int(), va_arg(ap, var));
+				var type = _cast(Int(), va_arg(ap, var), file, line);
 				char *str = stringer(type, flag, width, precision);
 
-				printf("%s", str);
+				result += printf("%s", str);
 				free(str);
 			}
 			else if (*p == 'm')
 			{
-				var type = cast(Matrix(), va_arg(ap, var));
+				var type = _cast(Matrix(), va_arg(ap, var), file, line);
 				char *str = stringer(type, flag, width, precision);
 
-				printf("%s", str);
+				result += printf("%s", str);
 				free(str);
 			}
 			else if (*p == 'f')
 			{
-				var type = cast(Float(), va_arg(ap, var));
+				var type = _cast(Float(), va_arg(ap, var), file, line);
 				char *str = stringer(type, flag, width, precision);
 
-				printf("%s", str);
+				result += printf("%s", str);
 				free(str);
 			}
 			else if (*p == 'v')
 			{
-				var type = cast(Object(), va_arg(ap, var));
+				var type = _cast(Object(), va_arg(ap, var), file, line);
 				char *str = stringer(type, flag, width, precision);
 
-				printf("%s", str);
+				result += printf("%s", str);
 				free(str);
+			}
+			else
+			{
+				putchar(*p);
 			}
 
 			flag = -1;
@@ -194,23 +202,34 @@ void oprintf(const char *fmt, ...)
 	}
 
 	va_end(ap);
+	return result;
 }
 
-void oprint(const void *_self)
+int oprint(const void *_self)
 {
-	char *str = stringer(_self);
+	char *str = stringer(_self, -1, -1, -1);
 
-	puts(str);
+	int result = puts(str);
 	free(str);
+
+	return result;
 }
 
-void oprintln(const void *_self)
+int oprintln(const void *_self)
 {
-	char *str = stringer(_self);
+	char *str = stringer(_self, -1, -1, -1);
 
-	puts(str);
+	int result = puts(str);
 	putchar('\n');
+
 	free(str);
+
+	return result + 1;
+}
+
+int oscanf(const char *fmt, ...)
+{
+	
 }
 
 /*

@@ -27,6 +27,9 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 	self->scsub = NULL;
 	self->scmulti = NULL;
 	self->scdivide = NULL;
+	self->inverse_add = NULL;
+	self->inverse_multi = NULL;
+	self->rnd = NULL;
 
 	while ((selector = va_arg(ap_copy, voidf)))
 	{
@@ -52,6 +55,12 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 			self->scmulti = (scmulti_f) method;
 		else if (selector == (voidf) scdivide)
 			self->scdivide = (scdivide_f) method;
+		else if (selector == (voidf) inverse_add)
+			self->inverse_add = (inverse_add_f) method;
+		else if (selector == (voidf) inverse_multi)
+			self->inverse_multi = (inverse_multi_f) method;
+		else if (selector == (voidf) rnd)
+			self->rnd = (rnd_f) method;
 	}
 
 	va_end(ap_copy);
@@ -69,7 +78,7 @@ int cmp(const void *_self, const void *b)
 	const struct Class *class = _self;
 
 	if (tclass->cmp == NULL)
-		throw(TypeException(), "Compare Error: Type '%s' doesn't have 'cmp' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'cmp' method!",
 				class->name);
 
 	return tclass->cmp(_self, b);
@@ -83,7 +92,7 @@ void* sum(const void *_self, const void *b)
 	const struct Class *class = _self;
 
 	if (tclass->sum == NULL)
-		throw(TypeException(), "Sum Error: Type '%s' doesn't have 'sum' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'sum' method!",
 				class->name);
 
 	return tclass->sum(_self, b);
@@ -97,7 +106,7 @@ void* subtract(const void *_self, const void *b)
 	const struct Class *class = _self;
 
 	if (tclass->subtract == NULL)
-		throw(TypeException(), "Subtract Error: Type '%s' doesn't have 'subtract' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'subtract' method!",
 				class->name);
 
 	return tclass->subtract(_self, b);
@@ -111,7 +120,7 @@ void* product(const void *_self, const void *b)
 	const struct Class *class = _self;
 
 	if (tclass->product == NULL)
-		throw(TypeException(), "Product Error: Type '%s' doesn't have 'product' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'product' method!",
 				class->name);
 
 	return tclass->product(_self, b);
@@ -125,7 +134,7 @@ void* divide(const void *_self, const void *b)
 	const struct Class *class = _self;
 
 	if (tclass->divide == NULL)
-		throw(TypeException(), "Divide Error: Type '%s' doesn't have 'divide' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'divide' method!",
 				class->name);
 
 	return tclass->divide(_self, b);
@@ -138,7 +147,7 @@ void scadd(void *_self, ...)
 	const struct Class *class = _self;
 
 	if (tclass->scadd == NULL)
-		throw(TypeException(), "Scalar Add Error: Type '%s' doesn't have 'scadd' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scadd' method!",
 				class->name);
 	va_list ap;
 	va_start(ap, _self);
@@ -152,7 +161,7 @@ void vscadd(void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (tclass->scadd == NULL)
-		throw(TypeException(), "Scalar Add Error: Type '%s' doesn't have 'scadd' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scadd' method!",
 				class->name);
 
 	tclass->scadd(_self, ap);
@@ -165,7 +174,7 @@ void scsub(void *_self, ...)
 	const struct Class *class = _self;
 
 	if (tclass->scsub == NULL)
-		throw(TypeException(), "Scalar Subtract Error: Type '%s' doesn't have 'scsub' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scsub' method!",
 				class->name);
 
 	va_list ap;
@@ -180,7 +189,7 @@ void vscsub(void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (tclass->scsub == NULL)
-		throw(TypeException(), "Scalar Subtract Error: Type '%s' doesn't have 'scsub' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scsub' method!",
 				class->name);
 
 	tclass->scsub(_self, ap);
@@ -193,7 +202,7 @@ void scmulti(void *_self, ...)
 	const struct Class *class = _self;
 
 	if (tclass->scmulti == NULL)
-		throw(TypeException(), "Scalar Multiply Error: Type '%s' doesn't have 'scmulti' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scmulti' method!",
 				class->name);
 
 	va_list ap;
@@ -208,7 +217,7 @@ void vscmulti(void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (tclass->scmulti == NULL)
-		throw(TypeException(), "Scalar Multiply Error: Type '%s' doesn't have 'scmulti' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scmulti' method!",
 				class->name);
 
 	tclass->scmulti(_self, ap);
@@ -221,7 +230,7 @@ void scdivide(void *_self, ...)
 	const struct Class *class = _self;
 
 	if (tclass->scdivide == NULL)
-		throw(TypeException(), "Scalar Divide Error: Type '%s' doesn't have 'scdivide' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scdivide' method!",
 				class->name);
 
 	va_list ap;
@@ -236,10 +245,36 @@ void vscdivide(void *_self, va_list *ap)
 	const struct Class *class = _self;
 
 	if (tclass->scdivide == NULL)
-		throw(TypeException(), "Scalar Divide Error: Type '%s' doesn't have 'scdivide' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'scdivide' method!",
 				class->name);
 
 	tclass->scdivide(_self, ap);
+}
+
+// Return variable, inversed by addition, of some type  (a copy)
+void* inverse_add(void *_self)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->inverse_add == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_add' method!",
+				class->name);
+	
+	return tclass->inverse_add(_self);
+}
+
+// Return variable, inversed by multiplication, of some type (a copy)
+void* inverse_multi(void *_self)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
+	const struct Class *class = _self;
+
+	if (tclass->inverse_multi == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_multi' method!",
+				class->name);
+
+	return tclass->inverse_multi(_self);
 }
 
 // Swap values of two variables of some type
@@ -249,10 +284,42 @@ void swap(void *_self, void *b)
 	const struct Class *class = _self;
 
 	if (tclass->swap == NULL)
-		throw(TypeException(), "Swap Error: Type '%s' doesn't have 'swap' method!",
+		throw(TypeException(), "Error: Type '%s' doesn't have 'swap' method!",
 				class->name);
 
 	tclass->swap(_self, b);
+}
+
+// Create new element width random value (if _self == NULL)
+// Or set value of existing element to random
+void* rnd(const void *_class, void *_self, ...)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), _class);
+	const struct Class *class = _class;
+
+	if (tclass->rnd == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'rnd' method!",
+				class->name);
+
+	va_list ap;
+
+	va_start(ap, _self);
+	void *result = tclass->rnd(_self, &ap);
+	va_end(ap);
+
+	return result;
+}
+
+void* vrnd(const void *_class, void *_self, va_list *ap)
+{
+	const struct TypeClass *tclass = cast(TypeClass(), _class);
+	const struct Class *class = _class;
+
+	if (tclass->rnd == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'rnd' method!",
+				class->name);
+
+	return tclass->rnd(_self, ap);
 }
 
 /*

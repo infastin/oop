@@ -14,10 +14,13 @@ typedef void *(*sum_f)(const void *self, const void *b);
 typedef void *(*subtract_f)(const void *self, const void *b);
 typedef void *(*product_f)(const void *self, const void *b);
 typedef void *(*divide_f)(const void *self, const void *b);
+typedef void *(*inverse_add_f)(void *self);
+typedef void *(*inverse_multi_f)(void *self);
 typedef void  (*scadd_f)(void *self, va_list *ap);
 typedef void  (*scsub_f)(void *self, va_list *ap);
 typedef void  (*scmulti_f)(void *self, va_list *ap);
 typedef void  (*scdivide_f)(void *self, va_list *ap);
+typedef void *(*rnd_f)(void *self, va_list *ap);
 typedef void  (*swap_f)(void *self, void *b);
 
 struct TypeClass
@@ -33,6 +36,9 @@ struct TypeClass
 	scsub_f scsub;
 	scmulti_f scmulti;
 	scdivide_f scdivide;
+	inverse_add_f inverse_add;
+	inverse_multi_f inverse_multi;
+	rnd_f rnd;
 };
 
 int   cmp(const void *self, const void *b);
@@ -41,11 +47,16 @@ void* sum(const void *self, const void *b);
 void* subtract(const void *self, const void *b);
 void* product(const void *self, const void *b);
 void* divide(const void *self, const void *b);
+void* inverse_add(void *self);
+void* inverse_multi(void *self);
+void* rnd(const void *class, void *self, ...);
 
 void  scadd(void *self, ...);
 void  scsub(void *self, ...);
 void  scmulti(void *self, ...);
 void  scdivide(void *self, ...);
+
+void* vrnd(const void *class, void *self, va_list *ap);
 
 void  vscadd(void *self, va_list *ap);
 void  vscsub(void *self, va_list *ap);
