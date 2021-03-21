@@ -25,9 +25,9 @@ int main(int argc, char *argv[])
 	determinant(matrix1, &det);
 	printf("%d\n", det);
 
-	var tmp = new(Float(), 45.50);
+	var tmp = new(Float(), 45.00);
 
-	oprintf("%+10d\n%07m", tmp, matrix1);
+	oprintf("%v\n%07m", tmp, matrix1);
 
 	return 0;
 }

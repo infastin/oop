@@ -177,6 +177,14 @@ void oprintf(const char *fmt, ...)
 				printf("%s", str);
 				free(str);
 			}
+			else if (*p == 'v')
+			{
+				var type = cast(Object(), va_arg(ap, var));
+				char *str = stringer(type, flag, width, precision);
+
+				printf("%s", str);
+				free(str);
+			}
 
 			flag = -1;
 			width = -1;

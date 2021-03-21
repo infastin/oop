@@ -76,7 +76,7 @@ static char* IntType_stringer(const void *_self, va_list *ap)
 	precision = va_arg(ap_copy, int);
 
 	// Getting format size
-	size_t fmt_size = 1;
+	size_t fmt_size = 2;
 
 	if (flag != -1)
 		fmt_size++;
@@ -114,7 +114,8 @@ static char* IntType_stringer(const void *_self, va_list *ap)
 		psize -= precisionN;
 	}
 
-	*p = 'd';
+	*p++ = 'd';
+	*p = 0;
 
 	// Getting result
 	size_t size = snprintf(NULL, 0, fmt, self->value);
