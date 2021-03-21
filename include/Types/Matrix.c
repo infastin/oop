@@ -1,14 +1,12 @@
-#include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "Exception.h"
 #include "Matrix.h"
-#include "Object.h"
 #include "ReferenceCounter.h"
 #include "Selectors.h"
-#include "TypeClass.h"
 #include "IntType.h"
 
 /*
@@ -267,12 +265,72 @@ static void* Matrix_dtor(void *_self)
 	return super_dtor(Matrix(), _self);
 }
 
+static char* Matrix_stringer(const void *_self, va_list *ap)
+{
+	const struct Matrix *self = cast(Matrix(), _self);
+
+	// Getting size
+	size_t size = 0;
+
+	for (int i = 0; i < self->rows; i++)
+	{
+		for (int j = 0; j < self->columns; j++)
+		{
+			char *elem = vstringer(self->mass[i][j], ap);
+			size += strlen(elem);
+
+			if (j != self->columns - 1)
+				size++;
+
+			free(elem);
+		}
+
+		if (i != self->rows - 1)
+			size++;
+	}
+
+	// Getting result
+	char *result = (char*)calloc(sizeof(char), size + 1);
+	char *p = result;
+	size_t psize = size;
+
+	for (int i = 0; i < self->rows; i++)
+	{
+		for (int j = 0; j < self->columns; ++j) 
+		{
+			int len;
+			char *elem = vstringer(self->mass[i][j], ap);
+
+			if (j != self->columns - 1)
+				len = snprintf(p, psize + 1, "%s ", elem);
+			else
+				len = snprintf(p, psize + 1, "%s", elem);
+
+			psize -= len;
+			p += len;
+			
+			free(elem);
+		}
+
+		if (i != self->rows - 1)
+		{
+			*p++ = '\n';
+			psize--;
+		}
+	}
+
+	result[size] = 0;
+
+	return result;
+}
+
 static void* Matrix_sum(void *_self, void *b)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);
 
-	if (self->type != B->type) {
+	if (self->type != B->type) 
+	{
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
@@ -302,7 +360,8 @@ static void* Matrix_subtract(void *_self, void *b)
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);
 
-	if (self->type != B->type) {
+	if (self->type != B->type) 
+	{
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
@@ -332,7 +391,8 @@ static void* Matrix_product(void *_self, void *b)
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);
 
-	if (self->type != B->type) {
+	if (self->type != B->type) 
+	{
 		const struct Class *self_type_class = cast(Class(), self->type);
 		const struct Class *B_type_class = cast(Class(), B->type);
 
@@ -540,6 +600,7 @@ ClassImpl(Matrix)
 				cpy, Matrix_cpy,
 				set, Matrix_set,
 				get, Matrix_get,
+				stringer, Matrix_stringer,
 				sum, Matrix_sum,
 				subtract, Matrix_subtract,
 				product, Matrix_product,

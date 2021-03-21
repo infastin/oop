@@ -1,7 +1,6 @@
 #ifndef INTTYPE_H_ITLFXA2E
 #define INTTYPE_H_ITLFXA2E
 
-#include "Object.h"
 #include "TypeClass.h"
 
 ClassHeader(Int);

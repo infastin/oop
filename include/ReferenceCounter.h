@@ -1,8 +1,6 @@
 #ifndef REFERENCECOUNTER_H_GPXNQOXC
 #define REFERENCECOUNTER_H_GPXNQOXC
 
-#include "Selectors.h"
-
 extern void release(void *self_ptr);
 
 #define smart __attribute__ ((cleanup(release)))

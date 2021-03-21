@@ -1,5 +1,4 @@
 #include <stdatomic.h>
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -51,8 +50,14 @@ inline void release(void *_self_ptr) {
 
 	if (*conv.real_ptr && !lf_exists(*conv.real_ptr)) {
 		struct Object *self = cast(Object(), *conv.real_ptr);
+		const struct Class *class = self->class;
 
-		assert(self->ref_count);
+		if (self->ref_count <= 0)
+		{
+			fprintf(stderr, "Reference Counter Error: Can't destroy object '%s' with zero reference count!\n", 
+					class->name);
+			return;
+		}
 
 		if (atomic_fetch_sub((atomic_uint*) &self->ref_count, 1) == 1) 
 		{
@@ -67,7 +72,14 @@ void* retain(void *_self)
 {
 	struct Object *self = cast(Object(), _self);
 
-	assert(self->ref_count);
+	const struct Class *class = self->class;
+
+	if (self->ref_count <= 0)
+	{
+		fprintf(stderr, "Reference Counter Error: Can't retain object '%s' with zero reference count!\n", 
+				class->name);
+		return NULL;
+	}
 
 	atomic_fetch_add((atomic_uint*) &self->ref_count, 1);
 

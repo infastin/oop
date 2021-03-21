@@ -3,7 +3,6 @@
 
 #include <stdarg.h>
 
-#include "Object.h"
 #include "TypeClass.h"
 
 ClassHeader(Matrix);

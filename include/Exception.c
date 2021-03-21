@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -9,8 +7,6 @@
 #include <execinfo.h>
 
 #include "Exception.h"
-#include "ExceptionObject.h"
-#include "Object.h"
 #include "Selectors.h"
 
 /*
@@ -230,7 +226,11 @@ void exception_throw(void *_self, const void *_obj, char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	vasprintf(&obj->msg, fmt, ap);
+
+	size_t size = vsnprintf(NULL, 0, fmt, ap);
+	obj->msg = (char*)calloc(sizeof(char), size + 1);
+	vsnprintf(obj->msg, size + 1, fmt, ap);
+
 	va_end(ap);
 	self->obj = obj;
 
@@ -299,14 +299,4 @@ ObjectImpl(GlobalException)
 	}
 
 	return _GlobalException;
-}
-
-ObjectImpl(SomeError)
-{
-	if (!_SomeError)
-	{
-		_SomeError = new(ExceptionObject(), "SomeError");
-	}
-
-	return _SomeError;
 }

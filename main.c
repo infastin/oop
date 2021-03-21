@@ -1,14 +1,7 @@
-#include <setjmp.h>
 #include <stdio.h>
 #include <time.h>
 
-#include "Exception.h"
-#include "ExceptionObject.h"
 #include "Init.h"
-#include "Matrix.h"
-#include "Object.h"
-#include "Selectors.h"
-#include "TypeClass.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +13,7 @@ int main(int argc, char *argv[])
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			int ran1 = rand() % 10;
+			int ran1 = rand() % 100;
 			set(matrix1, i, j, ran1);
 			printf("%d ", ran1);
 		}
@@ -31,6 +24,10 @@ int main(int argc, char *argv[])
 	int det;
 	determinant(matrix1, &det);
 	printf("%d\n", det);
+
+	var tmp = new(Float(), 45.50);
+
+	oprintf("%+10d\n%07m", tmp, matrix1);
 
 	return 0;
 }

@@ -2,7 +2,6 @@
 #define EXCEPTIONOBJECT_H_OQI38Z0M
 
 #include "Object.h"
-#include <stddef.h>
 
 ClassHeader(ExceptionObject);
 

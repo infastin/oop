@@ -21,7 +21,6 @@ else()
 endif()
 
 set(INCLUDE_FOLDER include)
-set(GEOMETRY_FOLDER ${INCLUDE_FOLDER}/Geometry)
 set(TYPES_FOLDER ${INCLUDE_FOLDER}/Types)
 
 set(DIRS 
@@ -35,22 +34,18 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/TypeClass.c
 			${INCLUDE_FOLDER}/ReferenceCounter.c
 			${INCLUDE_FOLDER}/Exception.c
-			${INCLUDE_FOLDER}/ExceptionObject.c)
-
-add_library(geometry STATIC
-			${GEOMETRY_FOLDER}/Circle.c
-			${GEOMETRY_FOLDER}/Point2D.c)
-target_link_libraries(geometry base)
+			${INCLUDE_FOLDER}/ExceptionObject.c
+			${INCLUDE_FOLDER}/Print.c)
 
 add_library(types STATIC
 			${TYPES_FOLDER}/IntType.c
+			${TYPES_FOLDER}/FloatType.c
 			${TYPES_FOLDER}/Matrix.c)
 target_link_libraries(types base)
 
 target_include_directories(base PUBLIC ${DIRS})
-target_include_directories(geometry PUBLIC ${DIRS})
 target_include_directories(types PUBLIC ${DIRS})
 
 add_executable(main main.c)
 target_link_libraries(main
-					  base geometry types)
+					  base types)

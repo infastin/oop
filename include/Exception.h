@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <setjmp.h>
 
-#include "Object.h"
-#include "Selectors.h"
 #include "ExceptionObject.h"
 
 /*
@@ -17,7 +15,6 @@
 
 ClassHeader(Exception);
 ObjectHeader(GlobalException);
-ObjectHeader(SomeError);
 
 typedef void (*throw_f)(const void *self, char *fmt, ...);
 

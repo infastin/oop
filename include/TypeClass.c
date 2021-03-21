@@ -1,12 +1,9 @@
-#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "Exception.h"
-#include "ExceptionObject.h"
-#include "Object.h"
 #include "TypeClass.h"
 #include "Selectors.h"
+#include "Exception.h"
 
 /*
  * Methods

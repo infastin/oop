@@ -1,11 +1,10 @@
-#include <assert.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <signal.h>
 
-#include "ExceptionObject.h"
 #include "Object.h"
 #include "Selectors.h"
 
@@ -32,30 +31,67 @@ static void* Object_cpy(const void *_self, void *_object)
  * Object selectors
  */
 
+const void* _isObject(const void *_self, char *file, int line)
+{
+	if (_self == NULL)
+	{
+		fprintf(stderr, "%s:%d: isObject error: given variable is NULL!", 
+				file, line);
+		exit(EXIT_FAILURE);
+	}
+
+	const struct Object *self = _self;
+
+	if (self->magic != MAGIC_NUM)
+	{
+		fprintf(stderr, "%s:%d: isObject error: given variable isn't object!",
+				file, line);
+		exit(EXIT_FAILURE);
+	}
+
+	return _self;
+}
 
 static void catch(int signal)
 {
-	assert(signal == 0);
+	if (signal == SIGBUS)
+	{
+		fprintf(stderr, "Cast error: Caught Bus Error, exiting!");
+		exit(EXIT_FAILURE);
+	}
+	
+	if (signal == SIGSEGV)
+	{
+		fprintf(stderr, "Cast error: Caught Segmentation Fault, exiting!");
+		exit(EXIT_FAILURE);
+	}
 }
 
-void* cast(const void* class, const void *_self)
+void* _cast(const void *_class, const void *_self, char *file, int line)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, catch);
 #ifdef SIGBUS
 	void (*sigbus)(int) = signal(SIGBUS, catch);
 #endif
 
-	const struct Object *self = isObject(_self);
-	const struct Class  *myClass = isObject(self->class);
+	const struct Object *self = _isObject(_self, file, line);
+	const struct Class  *myClass = _isObject(self->class, file, line);
 
-	if (class != Object())
+	if (_class != Object())
 	{
-		isObject(class);
+		const struct Class *p = myClass;
+		const struct Class *class = _isObject(_class, file, line);
 
-		while(myClass != class)
+		while (p != class)
 		{
-			assert(myClass != Object());
-			myClass = myClass->super;
+			if (p == Object())
+			{
+				fprintf(stderr, "%s:%d: cast error: Object '%s' can't be the object '%s'!\n", 
+						file, line, myClass->name, class->name);
+				exit(EXIT_FAILURE);
+			}
+
+			p = p->super;
 		}
 	}
 
@@ -133,7 +169,12 @@ static void* Class_ctor(void *_self, va_list *ap)
 	self->super = va_arg(*ap, struct Class*);
 	self->size = va_arg(*ap, size_t);
 
-	assert(self->super);
+	if (self->super == NULL)
+	{
+		fprintf(stderr, "Class Constructor Error: Superclass of object '%s' can't be NULL!\n", 
+				self->name);
+		exit(EXIT_FAILURE);
+	}
 
 	memcpy((char*) self + offset, 
 			(char*) self->super + offset, 
@@ -158,6 +199,8 @@ static void* Class_ctor(void *_self, va_list *ap)
 			self->set = (set_f) method;
 		else if (selector == (voidf) get)
 			self->get = (get_f) method;
+		else if (selector == (voidf) stringer)
+			self->stringer = (stringer_f) method;
 	}
 
 	va_end(ap_copy);
@@ -167,14 +210,14 @@ static void* Class_ctor(void *_self, va_list *ap)
 static void* Class_dtor(void *_self)
 {
 	struct Class *self = _self;
-	fprintf(stderr, "%s: cannot destroy class\n", self->name);
+	fprintf(stderr, "Class Destructor Error: can't destroy class '%s'!\n", self->name);
 	return 0;
 }
 
 static void* Class_cpy(const void *_self, void *_object)
 {
 	const struct Class *self = _self;
-	fprintf(stderr, "%s: cannot copy class\n", self->name);
+	fprintf(stderr, "Class Copy Error: can't copy class '%s'!\n", self->name);
 	return 0;
 }
 
@@ -188,13 +231,15 @@ static const struct Class _Class;
 static const struct Class _Object = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Object", &_Object, sizeof(struct Object),
-	Object_ctor, Object_dtor, Object_cpy, NULL, NULL
+	Object_ctor, Object_dtor, Object_cpy, 
+	NULL, NULL, NULL
 };
 
 static const struct Class _Class = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Class", &_Object, sizeof(struct Class),
-	Class_ctor, Class_dtor, Class_cpy, NULL, NULL 
+	Class_ctor, Class_dtor, Class_cpy, 
+	NULL, NULL, NULL
 };
 
 const void* const Object(void) {
@@ -204,18 +249,4 @@ const void* const Object(void) {
 const void* const Class(void)
 {
 	return &_Class;
-}
-
-/*
- * Exception Initialization
- */
-
-ObjectImpl(ObjectException)
-{
-	if (_ObjectException)
-	{
-		_ObjectException = new(ExceptionObject(), "ObjectException");
-	}
-
-	return _ObjectException;
 }
