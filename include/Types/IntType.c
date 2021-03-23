@@ -5,6 +5,7 @@
 
 #include "Selectors.h"
 #include "IntType.h"
+#include "Exception.h"
 
 /*
  * Methods
@@ -60,72 +61,38 @@ static void IntType_get(void *_self, va_list *ap)
 	*val = self->value;
 }
 
-static char* IntType_stringer(const void *_self, va_list *ap)
+static int IntType_sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn,
+		int flag, int width, int precision)
 {
-	struct IntType *self = cast(Int(), _self);
+	struct IntType *self = cast(Int(), _self);	
 
-	// Declarations
-	char *result;
-	int flag, width, precision;
+	char *fmt = __getFmt(flag, width, precision, "d");
 
-	va_list ap_copy;
-	va_copy(ap_copy, *ap);
+	if (fmt) {
+		// Getting result
+		int size;
+		if (stream != NULL)
+		{
+			if (bin)
+				size = fwrite(&self->value, sizeof(self->value), 1, stream);
+			else
+				size = fprintf(stream, fmt, self->value);
+		}
+		else if (buffer != NULL)
+			size = snprintf(buffer, maxn, fmt, self->value);
+		else
+			size = snprintf(NULL, 0, fmt, self->value);
 
-	flag = va_arg(ap_copy, int);
-	width = va_arg(ap_copy, int);
-	precision = va_arg(ap_copy, int);
-
-	// Getting format size
-	size_t fmt_size = 2;
-
-	if (flag != -1)
-		fmt_size++;
-
-	if (width != -1)
-		fmt_size += snprintf(NULL, 0, "%d", width);
-	
-	if (precision != -1)
-		fmt_size += snprintf(NULL, 0, "%d", precision);
-	
-	// Getting format
-	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
-	*fmt = '%';
-	
-	char *p = fmt + 1;
-	size_t psize = fmt_size - 1;
-
-	if (flag != -1)
+		free(fmt);
+		return size;
+	}
+	else
 	{
-		*p++ = flag;
-		psize--;
+		free(fmt);
+		throw(FormatException(), "Error: could not allocate memory for format string!");
 	}
 
-	if (width != -1)
-	{
-		int widthN = snprintf(p, psize + 1, "%d", width);
-		p += widthN;
-		psize -= widthN;
-	}
-
-	if (precision != -1)
-	{
-		int precisionN = snprintf(p, psize + 1, ".%d", precision);
-		p += precisionN;
-		psize -= precisionN;
-	}
-
-	*p++ = 'd';
-	*p = 0;
-
-	// Getting result
-	size_t size = snprintf(NULL, 0, fmt, self->value);
-	result = (char*)calloc(sizeof(char), size + 1);
-	snprintf(result, size + 1, fmt, self->value);
-
-	free(fmt);
-
-	va_end(ap_copy);
-	return result;
+	return -1;  
 }
 
 static int IntType_reader(const char *str, va_list *ap)
@@ -318,7 +285,7 @@ ClassImpl(Int)
 				get, IntType_get,
 				cmp, IntType_cmp,
 				swap, IntType_swap,
-				stringer, IntType_stringer,
+				sfprint, IntType_sfprint,
 				reader, IntType_reader,
 				sum, IntType_sum,
 				subtract, IntType_subtract,

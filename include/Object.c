@@ -7,6 +7,7 @@
 
 #include "Object.h"
 #include "Selectors.h"
+#include "ExceptionObject.h"
 
 /*
  * Object
@@ -52,7 +53,7 @@ const void* _isObject(const void *_self, char *file, int line)
 	return _self;
 }
 
-static void catch(int signal)
+static void sigcatch(int signal)
 {
 	if (signal == SIGBUS)
 	{
@@ -69,9 +70,9 @@ static void catch(int signal)
 
 void* _cast(const void *_class, const void *_self, char *file, int line)
 {
-	void (*sigsegv)(int) = signal(SIGSEGV, catch);
+	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
 #ifdef SIGBUS
-	void (*sigbus)(int) = signal(SIGBUS, catch);
+	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
 #endif
 
 	const struct Object *self = _isObject(_self, file, line);
@@ -198,8 +199,8 @@ static void* Class_ctor(void *_self, va_list *ap)
 			self->set = (set_f) method;
 		else if (selector == (voidf) get)
 			self->get = (get_f) method;
-		else if (selector == (voidf) stringer)
-			self->stringer = (stringer_f) method;
+		else if (selector == (voidf) sfprint)
+			self->sfprint = (sfprint_f) method;
 	}
 
 	va_end(ap_copy);
@@ -248,4 +249,17 @@ const void* const Object(void) {
 const void* const Class(void)
 {
 	return &_Class;
+}
+
+/*
+ * Exceptions
+ */
+ObjectImpl(FormatException)
+{
+	if (!_FormatException)
+	{
+		_FormatException = new(ExceptionObject(), "FormatException");
+	}
+
+	return _FormatException;
 }

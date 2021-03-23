@@ -2,6 +2,7 @@
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "Object.h"
 #include "Selectors.h"
@@ -12,19 +13,22 @@
 
 static FILE *sel_log = NULL;
 
-void sellog(char *fmt, char *file, int line, const char* func, ...)
+void sellog(char *fmt, char *file, int line, const char *func, const char *func_name, ...)
 {
 	if (sel_log == NULL)
 		sel_log = fopen(__LOGS__"/sel_log.txt", "a+");
 
 	if (sel_log != NULL)
 	{
-		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s: %s", 
+				__DATE__, __TIME__, file, line, func, func_name, fmt);
+		
 		char *dt = (char*)calloc(sizeof(char), dt_size + 1);
-		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s: %s", 
+				__DATE__, __TIME__, file, line, func, func_name, fmt);
 
 		va_list ap;
-		va_start(ap, func);
+		va_start(ap, func_name);
 
 		vfprintf(sel_log, dt, ap);
 		fputc('\n', sel_log);
@@ -34,19 +38,22 @@ void sellog(char *fmt, char *file, int line, const char* func, ...)
 	}
 }
 
-void selerror(char *fmt, char *file, int line, const char *func, ...)
+void selerror(char *fmt, char *file, int line, const char *func, const char *func_name, ...)
 {
 	if (sel_log == NULL)
 		sel_log = fopen(__LOGS__"/sel_log.txt", "a+");
 
 	if (sel_log != NULL)
 	{
-		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s: %s", 
+				__DATE__, __TIME__, file, line, func, func_name, fmt);
+		
 		char *dt = (char*)calloc(sizeof(char), dt_size + 1);
-		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s", __DATE__, __TIME__, file, line, func, fmt);
+		snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s: %s", 
+				__DATE__, __TIME__, file, line, func, func_name, fmt);
 
 		va_list ap;
-		va_start(ap, func);
+		va_start(ap, func_name);
 
 		vfprintf(sel_log, dt, ap);
 		fputc('\n', sel_log);
@@ -63,7 +70,7 @@ void selerror(char *fmt, char *file, int line, const char *func, ...)
  * Create and delete selectors
  */
 
-void* _new(const void *_class, char *file, int line, ...)
+void* _new(const void *_class, char *file, int line, const char *func, ...)
 {
 	const struct Class *class = cast(Class(), _class);
 	struct Object *object;
@@ -71,7 +78,7 @@ void* _new(const void *_class, char *file, int line, ...)
 	if (class->size == 0)
 	{
 		selerror("Error: Object of class '%s' can't have zero size!", 
-				file, line, "new", class->name);
+				file, line, func, "new", class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -80,7 +87,7 @@ void* _new(const void *_class, char *file, int line, ...)
 	if (object == NULL)
 	{
 		selerror("Fatal Error: Object of class '%s' allocation error!", 
-				file, line, "new", class->name);
+				file, line, func, "new", class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -90,17 +97,17 @@ void* _new(const void *_class, char *file, int line, ...)
 
 	va_list ap;
 
-	va_start(ap, line);
+	va_start(ap, func);
 	object = ctor(object, &ap);
 	va_end(ap);
 
 	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
-			file, line, "new", class->name, class->size);
+			file, line, func, "new", class->name, class->size);
 
 	return object;
 }
 
-void* _vnew(const void *_class, char *file, int line, va_list *ap)
+void* _vnew(const void *_class, char *file, int line, const char* func, va_list *ap)
 {
 	const struct Class *class = cast(Class(), _class);
 	struct Object *object;
@@ -108,7 +115,7 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 	if (class->size == 0)
 	{
 		selerror("Error: Object of class '%s' can't have zero size!", 
-				file, line, "vnew", class->name);
+				file, line, func, "vnew", class->name);
 		exit(EXIT_FAILURE);
 	}	
 
@@ -117,7 +124,7 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 	if (object == NULL)
 	{
 		selerror("Fatal Error: Object of class '%s' allocation error!", 
-				file, line, "vnew", class->name);
+				file, line, func, "vnew", class->name);
 		exit(EXIT_FAILURE);
 
 	}
@@ -129,12 +136,12 @@ void* _vnew(const void *_class, char *file, int line, va_list *ap)
 	object = ctor(object, ap);
 
 	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
-			file, line, "vnew", class->name, class->size);	
+			file, line, func, "vnew", class->name, class->size);	
 
 	return object;
 }
 
-void _delete(void *_self, char *file, int line)
+void _delete(void *_self, char *file, int line, const char *func)
 {
 	if (_self) {
 		const struct Class *class = classOf(_self);
@@ -142,17 +149,17 @@ void _delete(void *_self, char *file, int line)
 		const char *name = class->name;
 		size_t size = class->size;
 		sellog("Trying to delete object of class '%s' with the size of '%lu' bytes.", 
-				file, line, "delete", name, size);
+				file, line, func, "delete", name, size);
 
 		free(dtor(_self));
 
 		sellog("Deleted object of class '%s' with the size of '%lu' bytes.", 
-				file, line, "delete", name, size);
+				file, line, func, "delete", name, size);
 	}
 }
 
 
-void* _copy(const void *_self, char *file, int line)
+void* _copy(const void *_self, char *file, int line, const char *func)
 {
 	const struct Object *self = cast(Object(), _self);
 	const struct Class *class = self->class;
@@ -161,7 +168,7 @@ void* _copy(const void *_self, char *file, int line)
 	if (class->size == 0)
 	{
 		selerror("Error: Object of class '%s' can't have zero size!", 
-				file, line, __FUNCTION__, class->name);
+				file, line, func, "copy", class->name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -170,7 +177,7 @@ void* _copy(const void *_self, char *file, int line)
 	if (object == NULL)
 	{
 		selerror("Fatal Error: Object of class '%s' allocation error!", 
-				file, line, "copy", class->name);
+				file, line, func, "copy", class->name);
 		exit(EXIT_FAILURE);
 	}
 	
@@ -180,12 +187,12 @@ void* _copy(const void *_self, char *file, int line)
 	atomic_init((atomic_uint*) &object->ref_count, ref_count);
 
 	sellog("Trying to copy object of class '%s' with the size '%lu' bytes.", 
-			file, line, "copy", class->name, class->size);
+			file, line, func, "copy", class->name, class->size);
 	
 	void *res = cpy(_self, object);
 	
 	sellog("Copied object of class '%s' with the size '%lu' bytes.", 
-			file, line, "copy", class->name, class->size);
+			file, line, func, "copy", class->name, class->size);
 
 	return res;
 }
@@ -301,39 +308,77 @@ void* cpy(const void *_self, void *object)
 	return class->cpy(_self, object);
 }
 
-// Get string representation of variable of some type
-char* stringer(const void *_self, ...)
+int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn, 
+		int flag, int width, int precision)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->stringer == NULL) 
+	if (class->sfprint == NULL)
 	{
-		fprintf(stderr, "stringer: Error: Class '%s' doesn't have 'stringer' method!\n",
+		fprintf(stderr, "sfprint: Error: Class '%s' doesn't have 'sfprint' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	va_list ap;
-
-	va_start(ap, _self);
-	char *result = class->stringer(_self, &ap);
-	va_end(ap);
-
-	return result;
+	return class->sfprint(_self, stream, bin, buffer, maxn, flag, width, precision);
 }
 
-char* vstringer(const void *_self, va_list *ap)
+char* __getFmt(int flag, int width, int precision, char *spec)
 {
-	const struct Class *class = classOf(_self);
+	int fmt_size = 1;
 
-	if (class->stringer == NULL) 
+	// Getting format size
+	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
+
+	if (flag != -1)
+		fmt_size++;
+
+	if (width != -1)
+		fmt_size += snprintf(NULL, 0, "%d", width);
+
+	if (precision != -1)
+		fmt_size += snprintf(NULL, 0, "%d", precision) + 1;
+
+	// Getting format
+	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
+
+	if (fmt)
 	{
-		fprintf(stderr, "vstringer: Error: Class '%s' doesn't have 'stringer' method!\n",
-				class->name);
-		exit(EXIT_FAILURE);
+		*fmt = '%';
+
+		char *p = fmt + 1;
+		int psize = fmt_size - 1;
+
+		if (flag != -1)
+		{
+			*p++ = flag;
+			psize--;
+		}
+
+		if (width != -1)
+		{
+			int widthN = snprintf(p, psize + 1, "%d", width);
+			p += widthN;
+			psize -= widthN;
+		}
+
+		if (precision != -1)
+		{
+			int precisionN = snprintf(p, psize + 1, ".%d", precision);
+			p += precisionN;
+			psize -= precisionN;
+		}
+
+		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
+		{
+			*p++ = *sp;
+			psize--;
+		}
+
+		*p = 0;
 	}
 
-	return class->stringer(_self, ap);
+	return fmt;
 }
 
 // Read one variable of some type from string
@@ -432,4 +477,3 @@ void* super_cpy(const void *_class, const void *_self, void *object)
 
 	return superclass->cpy(_self, object);
 }
-

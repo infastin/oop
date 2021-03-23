@@ -160,34 +160,31 @@ int _oprintf(const char *fmt, char *file, int line, ...)
 			if (*p == 'd' || *p == 'i')
 			{
 				var type = _cast(Int(), va_arg(ap, var), file, line);
-				char *str = stringer(type, flag, width, precision);
-
-				result += printf("%s", str);
-				free(str);
+				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
+				if (len != -1)
+					result += len;
 			}
 			else if (*p == 'm')
 			{
 				var type = _cast(Matrix(), va_arg(ap, var), file, line);
-				char *str = stringer(type, flag, width, precision);
-
-				result += printf("%s", str);
-				free(str);
+				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
+				if (len != -1)
+					result += len;
 			}
 			else if (*p == 'f')
 			{
 				var type = _cast(Float(), va_arg(ap, var), file, line);
-				char *str = stringer(type, flag, width, precision);
-
-				result += printf("%s", str);
-				free(str);
+				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
+				if (len != -1)
+					result += len;
 			}
 			else if (*p == 'v')
 			{
 				var type = _cast(Object(), va_arg(ap, var), file, line);
-				char *str = stringer(type, flag, width, precision);
+				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
+				if (len != -1)
+					result += len;
 
-				result += printf("%s", str);
-				free(str);
 			}
 			else
 			{
@@ -207,24 +204,17 @@ int _oprintf(const char *fmt, char *file, int line, ...)
 
 int oprint(const void *_self)
 {
-	char *str = stringer(_self, -1, -1, -1);
-
-	int result = puts(str);
-	free(str);
-
-	return result;
+	return sfprint(_self, stdout, 0, NULL, 0, -1, -1, -1);
 }
 
 int oprintln(const void *_self)
 {
-	char *str = stringer(_self, -1, -1, -1);
+	int result = sfprint(_self, stdout, 0, NULL, 0, -1, -1, -1);
 
-	int result = puts(str);
-	putchar('\n');
+	if (result != -1)
+		fputc('\n', stdout);
 
-	free(str);
-
-	return result + 1;
+	return result;
 }
 
 int oscanf(const char *fmt, ...)

@@ -101,7 +101,7 @@ void vmatrix_size(const void *_self, va_list *ap)
 	mclass->matrix_size(_self, ap);
 }
 
-void determinant(const void *_self, ...)
+void determinant(const void *_self, void **retval)
 {
 	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
@@ -110,22 +110,7 @@ void determinant(const void *_self, ...)
 		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'determinant' method!",
 				class->name);
 
-	va_list ap;
-	va_start(ap, _self);
-	mclass->determinant(_self, &ap);
-	va_end(ap);
-}
-
-void vdeterminant(const void *_self, va_list *ap)
-{
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (mclass->determinant == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'determinant' method!",
-				class->name);
-
-	mclass->determinant(_self, ap);
+	mclass->determinant(_self, retval);
 }
 
 /*
@@ -274,24 +259,27 @@ static void* Matrix_dtor(void *_self)
 	return super_dtor(Matrix(), _self);
 }
 
-static char* Matrix_stringer(const void *_self, va_list *ap)
+static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn, 
+		int flag, int width, int precision)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 
 	// Getting size
-	size_t size = 0;
+	int size = 0;
 
-	for (int i = 0; i < self->rows; i++)
+	for (int i = 0; i < self->rows; ++i) 
 	{
-		for (int j = 0; j < self->columns; j++)
+		for (int j = 0; j < self->columns; ++j) 
 		{
-			char *elem = vstringer(self->mass[i][j], ap);
-			size += strlen(elem);
+			int chck = sfprint(self->mass[i][j], NULL, 0, NULL, 0, flag, width, precision);
+	
+			if (chck != -1)
+				size += chck;
+			else
+				throw(FormatException(), "Error: some error occured during printing!");
 
 			if (j != self->columns - 1)
 				size++;
-
-			free(elem);
 		}
 
 		if (i != self->rows - 1)
@@ -299,38 +287,76 @@ static char* Matrix_stringer(const void *_self, va_list *ap)
 	}
 
 	// Getting result
-	char *result = (char*)calloc(sizeof(char), size + 1);
-	char *p = result;
-	size_t psize = size;
-
-	for (int i = 0; i < self->rows; i++)
+	if (stream != NULL)
 	{
-		for (int j = 0; j < self->columns; ++j) 
+		if (bin)
 		{
-			int len;
-			char *elem = vstringer(self->mass[i][j], ap);
+			size = 0;
 
-			if (j != self->columns - 1)
-				len = snprintf(p, psize + 1, "%s ", elem);
-			else
-				len = snprintf(p, psize + 1, "%s", elem);
-
-			psize -= len;
-			p += len;
-			
-			free(elem);
+			for (int i = 0; i < self->rows; ++i) 
+			{
+				for (int j = 0; j < self->columns; ++j) 
+				{
+					size += sfprint(self->mass[i][j], stream, bin, NULL, 0, flag, width, precision);
+				}
+			}
 		}
-
-		if (i != self->rows - 1)
+		else
 		{
-			*p++ = '\n';
-			psize--;
+			for (int i = 0; i < self->rows; ++i) 
+			{
+				for (int j = 0; j < self->columns; ++j) 
+				{
+					sfprint(self->mass[i][j], stream, bin, NULL, 0, flag, width, precision);
+
+					if (j != self->columns - 1)
+						fputc(' ', stream);
+				}
+
+				if (i != self->rows - 1)
+					fputc('\n', stream);
+			}
 		}
 	}
+	else if (buffer != NULL)
+	{
+		char *p = buffer;
+		int psize = size;
 
-	result[size] = 0;
+		for (int i = 0; i < self->rows; ++i) 
+		{
+			for (int j = 0; j < self->columns; ++j) 
+			{
+				int sz = sfprint(self->mass[i][j], NULL, bin, p, psize + 1, flag, width, precision);
 
-	return result;
+				if (sz != -1)
+				{
+					psize -= sz;
+					p += sz;
+
+					if (j != self->columns - 1)
+					{
+						*p++ = ' ';
+						psize--;
+					}
+				}
+				else
+				{
+					throw(FormatException(), "Error: some error occured during printing!");
+				}
+			}
+
+			if (i != self->rows - 1)
+			{
+				*p++ = '\n';
+				psize--;
+			}
+		}
+
+		*p = 0;
+	}
+
+	return size;
 }
 
 static void* Matrix_sum(void *_self, void *b)
@@ -533,7 +559,7 @@ static void Matrix_matrix_size(const void *_self, va_list *ap)
 	*columns = self->columns;
 }
 
-static void Matrix_determinant(const void *_self, va_list *ap)
+static void Matrix_determinant(const void *_self, void **retval)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 
@@ -542,7 +568,6 @@ static void Matrix_determinant(const void *_self, va_list *ap)
 				self->rows, self->columns);
 
 	var result = NULL;
-	var *out = va_arg(*ap, var*);
 
 	if (self->rows == 1 && self->columns == 1)
 	{
@@ -598,7 +623,7 @@ static void Matrix_determinant(const void *_self, va_list *ap)
 		}
 	}
 
-	*out = result;
+	*retval = result;
 }
 
 static void* Matrix_rnd(void *_self, va_list *ap)
@@ -658,7 +683,7 @@ ClassImpl(Matrix)
 				cpy, Matrix_cpy,
 				set, Matrix_set,
 				get, Matrix_get,
-				stringer, Matrix_stringer,
+				sfprint, Matrix_sfprint,
 				sum, Matrix_sum,
 				subtract, Matrix_subtract,
 				product, Matrix_product,

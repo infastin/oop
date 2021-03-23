@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdatomic.h>
+#include <stdio.h>
 
 /*
  * Class and object macro
@@ -29,14 +30,18 @@
 ClassHeader(Object);
 ClassHeader(Class);
 
+ObjectHeader(FormatException);
+
 typedef void  (*voidf)(void);
 typedef void *(*ctor_f)(void *self, va_list *ap);
 typedef void *(*cpy_f)(const void *self, void *object);
 typedef void *(*dtor_f)(void *self);
 typedef void  (*set_f)(void *self, va_list *ap);
 typedef void *(*get_f)(const void *self, va_list *ap);
-typedef char *(*stringer_f)(const void *self, va_list *ap);
 typedef int   (*reader_f)(const char *str,  va_list *ap);
+
+typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
+				int flag, int width, int precision);
 
 struct Object
 {
@@ -58,8 +63,8 @@ struct Class
 	
 	set_f set;
 	get_f get;
-	stringer_f stringer;
 	reader_f reader;
+	sfprint_f sfprint;
 };
 
 const void* _isObject(const void *self, char* file, int line);

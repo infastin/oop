@@ -57,7 +57,6 @@ static void Exception_backtrace(void)
 	}
 
 	fprintf(stderr, "\n");
-
 	free(symbols);
 }
 
