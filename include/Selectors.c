@@ -11,6 +11,8 @@
  * Logging
  */
 
+// ---
+
 static FILE *sel_log = NULL;
 
 void sellog(char *fmt, char *file, int line, const char *func, const char *func_name, ...)
@@ -67,8 +69,10 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 }
 
 /*
- * Create and delete selectors
+// Create, copy and delete selectors
  */
+
+// ---
 
 void* _new(const void *_class, char *file, int line, const char *func, ...)
 {
@@ -201,6 +205,8 @@ void* _copy(const void *_self, char *file, int line, const char *func)
  * Base selectors
  */
 
+// ---
+
 void* dtor(void *_self)
 {
 	const struct Class *class = classOf(_self);
@@ -261,7 +267,6 @@ void vset(void *_self, va_list *ap)
 	class->set(_self, ap);
 }
 
-// Get type's value pointer
 void get(const void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
@@ -381,15 +386,13 @@ char* __getFmt(int flag, int width, int precision, char *spec)
 	return fmt;
 }
 
-// Read one variable of some type from string
-// or from stream, if str == NULL (stream should be given after str)
-int reader(const void *_self, const char *str, ...)
+int sfscan(const void *_self, const char *str, ...)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->reader == NULL) 
+	if (class->sfscan == NULL) 
 	{
-		fprintf(stderr, "reader: Error: Class '%s' doesn't have 'reader' method!\n",
+		fprintf(stderr, "sfscan: Error: Class '%s' doesn't have 'sfscan' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
@@ -397,29 +400,17 @@ int reader(const void *_self, const char *str, ...)
 	va_list ap;
 
 	va_start(ap, str);
-	int result = class->reader(str, &ap);
+	int result = class->sfscan(str, &ap);
 	va_end(ap);
 
 	return result;
 }
 
-int vreader(const void *_self, const char *str, va_list *ap)
-{
-	const struct Class *class = classOf(_self);
-
-	if (class->reader == NULL) 
-	{
-		fprintf(stderr, "vreader: Error: Class '%s' doesn't have 'reader' method!\n",
-				class->name);
-		exit(EXIT_FAILURE);
-	}
-
-	return class->reader(str, ap);
-}
-
 /*
- * Super's base selectors
+ * Super selectors
  */
+
+// ---
 
 const void* super(const void *_self)
 {

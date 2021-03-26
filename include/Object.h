@@ -38,7 +38,7 @@ typedef void *(*cpy_f)(const void *self, void *object);
 typedef void *(*dtor_f)(void *self);
 typedef void  (*set_f)(void *self, va_list *ap);
 typedef void *(*get_f)(const void *self, va_list *ap);
-typedef int   (*reader_f)(const char *str,  va_list *ap);
+typedef int   (*sfcsan_f)(const char *str,  va_list *ap);
 
 typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
 				int flag, int width, int precision);
@@ -63,24 +63,24 @@ struct Class
 	
 	set_f set;
 	get_f get;
-	reader_f reader;
+	sfcsan_f sfscan;
 	sfprint_f sfprint;
 };
 
-const void* _isObject(const void *self, char* file, int line);
-void*  _cast(const void *class, const void* self, char *file, int line);
+const void* _isObject(const void *self, char *selfname, char *file, int line, const char *func);
+void*  _cast(const void *class, const void *self, char *selfname, char *file, int line, const char *func);
 
-const void* _classOf(const void *self, char* file, int line);
-size_t _sizeOf(const void *self, char* file, int line);
-int    _isA(const void *self, const void *class, char* file, int line);
-int    _isOf(const void *self, const void *class, char* file, int line);
+const void* _classOf(const void *self, char *selfname, char *file, int line, const char *func);
+size_t _sizeOf(const void *self, char *selfname, char *file, int line, const char *func);
+int    _isA(const void *self, const void *class, char *selfname, char *file, int line, const char *func);
+int    _isOf(const void *self, const void *class, char *selfname, char *file, int line, const char *func);
 
-#define isObject(self) _isObject(self, __FILE__, __LINE__)
-#define cast(class, self) _cast(class, self, __FILE__, __LINE__)
+#define isObject(self) _isObject(self, #self, __FILE__, __LINE__, __FUNCTION__)
+#define cast(class, self) _cast(class, self, #self, __FILE__, __LINE__, __FUNCTION__)
 
-#define classOf(self) _classOf(self, __FILE__, __LINE__)
-#define sizeOf(self) _sizeOf(self, __FILE__, __LINE__)
-#define isA(self, class) _isA(self, class, __FILE__, __LINE__)
-#define isOf(self, class) _isOf(self, class, __FILE__, __LINE__)
+#define classOf(self) _classOf(self, #self, __FILE__, __LINE__, __FUNCTION__)
+#define sizeOf(self) _sizeOf(self, #self, __FILE__, __LINE__, __FUNCTION__)
+#define isA(self, class) _isA(self, class, #self, __FILE__, __LINE__, __FUNCTION__)
+#define isOf(self, class) _isOf(self, class, #self, __FILE__, __LINE__, __FUNCTION__)
 
 #endif /* end of include guard: OBJECT_H_76AZNMVF */

@@ -120,14 +120,12 @@ void* super_dtor(const void *class, void *self);
  */
 void* super_cpy(const void *class, const void *self, void *object);
 
-
-int reader(const void *_self, const char *str, ...);
-
+int sfscan(const void *_self, const char *str, ...);
 
 /**
  * @brief Prints value of object into the stream or the buffer
  *
- * @param _self 	Object
+ * @param self 		Object
  * @param stream 	If not NULL, will ignore the buffer and work like fprintf
  * @param bin 		If 1, will print in binary mode into the stream
  * @param buffer 	If not NULL, will work like snprintf
@@ -160,8 +158,8 @@ char* __getFmt(int flag, int width, int precision, char *spec);
 /**
  * @brief Set object value/parameters
  *
- * @param self 	  Object
- * @param va_args List of arguments
+ * @param self Object
+ * @param ...  List of arguments
  */
 void set(void *self, ...);
 
@@ -169,8 +167,8 @@ void set(void *self, ...);
 /**
  * @brief Get object value/parameters
  *
- * @param self 	  Object
- * @param va_args List of arguments
+ * @param self Object
+ * @param ...  List of arguments
  */
 void get(const void *self, ...);
 
@@ -190,8 +188,8 @@ void vget(const void *self, va_list *ap);
 /**
  * @brief Create new object
  *
- * @param class   Class
- * @param va_args List of arguments
+ * @param class Class
+ * @param ...   List of arguments
  *
  * @return Object
  */

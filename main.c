@@ -16,11 +16,13 @@ int main(int argc, char *argv[])
 
 	rnd(Matrix(), matrix1, 100);
 
-	oprintf("%8.2m\n", matrix1);
+	oprintf("%f\n", matrix1);
 
-	var det;
-	determinant(matrix1, &det);
-	oprintf("%f\n", det);
+	{
+		smart var det;
+		determinant(matrix1, &det);
+		oprintf("%f\n", det);
+	}
 
 	FILE *T;
 
@@ -45,11 +47,11 @@ int main(int argc, char *argv[])
 	smart var matrix2 = new(Matrix(), Float(), dim2[0], dim2[1]);
 
 	for (int i = 0; i < dim2[0]; ++i) 
-	{
-		for (int j = 0; j < dim2[1]; ++j) 
-		{
+	{ 
+		for (int j = 0; j < dim2[1]; ++j)
+		{ 
 			double val;
-			fread(&val, sizeof(val), 1, T);
+			fread(&val, sizeof(val), 1, T); 
 			set(matrix2, i, j, val);
 		}
 	}

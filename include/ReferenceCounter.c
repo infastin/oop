@@ -40,14 +40,26 @@ void reflog(char *fmt, ...)
  */
 
 __attribute__ ((always_inline))
-inline void release(void *_self_ptr) {
-	union {
+inline void release(void *_self_ptr) 
+{
+	union 
+	{
 		void **real_ptr;
 		void *ptr;
 	} conv;
 
 	conv.ptr = _self_ptr;
-	struct Object *self = *conv.real_ptr;
+	struct Object *self;
+
+	if (conv.real_ptr)
+		self = *conv.real_ptr;
+	else
+	{
+		fprintf(stderr, "Reference Counter: given variable is NULL!");
+		reflog("Error: given variable is NULL!");
+
+		return;
+	}
 
 	if (self != NULL && self->magic == MAGIC_NUM) 
 	{

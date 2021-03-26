@@ -3,7 +3,7 @@
 
 /**
  * @file Matrix.h
- * @brief Matrix Class
+ * @brief MatrixClass, it's selectors and Matrix
  * @author infastin
  * @version 1.0
  * @date 2021-03-23
@@ -11,14 +11,15 @@
 
 #include <stdarg.h>
 
+#include "Selectors.h"
 #include "TypeClass.h"
 
 ClassHeader(Matrix);
 ClassHeader(MatrixClass);
 ObjectHeader(MatrixException);
 
-typedef void *(*minorOf_f)(const void *self, va_list *ap);
-typedef void *(*matrix_size_f)(const void *self, va_list *ap);
+typedef void *(*minorOf_f)(const void *self, unsigned int row, unsigned int column);
+typedef void *(*matrix_size_f)(const void *self, unsigned int *row, unsigned int *column);
 typedef void  (*determinant_f)(const void *self, void **retval);
 
 struct MatrixClass
@@ -39,45 +40,37 @@ struct Matrix
 };
 
 /**
- * @brief Get minor of matrix
+ * @brief Get matrix without row and column (not determinant)
  *
- * @param[in]  self    Matrix
- * @param[out] va_args Which row and column to remove
+ * @param[in] self   Matrix
+ * @param[in] row    Which row to remove
+ * @param[in] column Which column to remove
  *
  * @throw MatrixException If object doesn't have corresponding method
  *
- * @return Minor of Matrix
+ * @return Matrix without row and column
  */
-void* minorOf(const void *self, ...);
+void* minorOf(const void *self, unsigned int row, unsigned int column);
 
 /**
  * @brief Get matrix size
  *
  * @param[in]  self    Matrix
- * @param[out] va_args Pointers to the coords
+ * @param[out] rows    Where will be number of rows
+ * @param[out] columns Where will be number of columns
  *
  * @throw MatrixException If object doesn't have corresponding method
  */
-void matrix_size(const void *self, ...);
+void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
 
 /**
- * @brief Calculate square matrix determinant
+ * @brief Calculate matrix determinant
  *
  * @param[in]  self   Matrix
- * @param[out] retval Pointer to variable
+ * @param[out] retval Where will be determinant
  *
  * @throw MatrixException If object doesn't have corresponding method
  */
-void determinant(const void *self, void **retval);
-
-/**
- * @brief Same as minorOf
- */
-void* vminorOf(const void *_self, va_list *ap);
-
-/**
- * @brief Same as matrix_size
- */
-void vmatrix_size(const void *_self, va_list *ap);
+void determinant(const void *self, var *retval);
 
 #endif /* end of include guard: MATRIX_H_720USNE8 */

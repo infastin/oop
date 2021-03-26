@@ -32,12 +32,12 @@ static void* Object_cpy(const void *_self, void *_object)
  * Object selectors
  */
 
-const void* _isObject(const void *_self, char *file, int line)
+const void* _isObject(const void *_self, char *selfname, char *file, int line, const char *func)
 {
 	if (_self == NULL)
 	{
-		fprintf(stderr, "%s:%d: isObject: Error: given variable is NULL!", 
-				file, line);
+		fprintf(stderr, "%s:%d: %s: Error: '%s' is NULL!", 
+				file, line, func, selfname);
 		exit(EXIT_FAILURE);
 	}
 
@@ -45,8 +45,8 @@ const void* _isObject(const void *_self, char *file, int line)
 
 	if (self->magic != MAGIC_NUM)
 	{
-		fprintf(stderr, "%s:%d: isObject: Error: given variable isn't object!",
-				file, line);
+		fprintf(stderr, "%s:%d: %s: Error: '%s' isn't object!",
+				file, line, func, selfname);
 		exit(EXIT_FAILURE);
 	}
 
@@ -68,27 +68,27 @@ static void sigcatch(int signal)
 	}
 }
 
-void* _cast(const void *_class, const void *_self, char *file, int line)
+void* _cast(const void *_class, const void *_self, char *selfname, char *file, int line, const char *func)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
 #ifdef SIGBUS
 	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
 #endif
 
-	const struct Object *self = _isObject(_self, file, line);
-	const struct Class  *myClass = _isObject(self->class, file, line);
+	const struct Object *self = _isObject(_self, selfname, file, line, func);
+	const struct Class  *myClass = _isObject(self->class, selfname, file, line, func);
 
 	if (_class != Object())
 	{
 		const struct Class *p = myClass;
-		const struct Class *class = _isObject(_class, file, line);
+		const struct Class *class = _isObject(_class, selfname, file, line, func);
 
 		while (p != class)
 		{
 			if (p == Object())
 			{
-				fprintf(stderr, "%s:%d: cast: Error: Object of class '%s' can't be the object of class '%s'!\n", 
-						file, line, myClass->name, class->name);
+				fprintf(stderr, "%s:%d: %s: Error: '%s' is object of class '%s' and can't be the object of class '%s'!\n", 
+						file, line, func, selfname, myClass->name, class->name);
 				exit(EXIT_FAILURE);
 			}
 
@@ -104,40 +104,40 @@ void* _cast(const void *_class, const void *_self, char *file, int line)
 	return (void*) self;
 }
 
-const void* _classOf(const void *_self, char* file, int line)
+const void* _classOf(const void *_self, char *selfname, char *file, int line, const char *func)
 {
-	const struct Object *self = _cast(Object(), _self, file, line);
+	const struct Object *self = _cast(Object(), _self, selfname, file, line, func);
 
 	return self->class;
 }
 
-size_t _sizeOf(const void *_self, char* file, int line)
+size_t _sizeOf(const void *_self, char *selfname, char *file, int line, const char *func)
 {
-	const struct Class *class = _classOf(_self, file, line);
+	const struct Class *class = _classOf(_self, selfname, file, line, func);
 
 	return class->size;
 }
 
-int _isA(const void *_self, const void *_class, char* file, int line)
+int _isA(const void *_self, const void *_class, char *selfname, char *file, int line, const char *func)
 {
 	if (_self)
 	{
-		const struct Object *self = _cast(Object(), _self, file, line);
-		const struct Object *class = _cast(Object(), _class, file, line);
+		const struct Object *self = _cast(Object(), _self, selfname, file, line, func);
+		const struct Object *class = _cast(Object(), _class, selfname, file, line, func);
 
-		return _classOf(self, file, line) == class;
+		return _classOf(self, selfname, file, line, func) == class;
 	}
 
 	return 0;
 }
 
-int _isOf(const void *_self, const void *_class, char* file, int line)
+int _isOf(const void *_self, const void *_class, char *selfname, char *file, int line, const char *func)
 {
 	if (_self)
 	{
-		const struct Object *self = _cast(Object(), _self, file, line);
-		const struct Class *myClass = _classOf(self, file, line);
-		const struct Class *class = _cast(Class(), _class, file, line);
+		const struct Object *self = _cast(Object(), _self, selfname, file, line, func);
+		const struct Class *myClass = _classOf(self, selfname, file, line, func);
+		const struct Class *class = _cast(Class(), _class, selfname, file, line, func);
 
 		if (class != Object())
 		{

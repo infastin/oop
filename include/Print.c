@@ -19,13 +19,15 @@ int _oprintf(const char *fmt, char *file, int line, ...)
 	va_list ap;
 	va_start(ap, line);
 
+	unsigned int va_args_count = 1;
+
 	int flag = -1,
 		length = -1,
 		width = -1,
 		precision = -1;
 
 	int result = 0;;
-	
+
 	for (p = fmt; *p; p++)
 	{
 		if (*p != '%') {
@@ -157,39 +159,63 @@ int _oprintf(const char *fmt, char *file, int line, ...)
 				break;
 			}
 
+			// For error printing
+			char *spelling;
+			if (va_args_count % 10 == 1 && va_args_count != 11)
+				spelling = "st";
+			else if (va_args_count % 10 == 2 && va_args_count != 12)
+				spelling = "nd";
+			else if (va_args_count % 10 == 3 && va_args_count != 13)
+				spelling = "td";
+			else
+				spelling = "th";
+
+			int varg_str_len = snprintf(NULL, 0, "%d%s variable", va_args_count, spelling);
+			char *varg_str = (char*)calloc(sizeof(char), varg_str_len + 1);
+			snprintf(varg_str, varg_str_len + 1, "%d%s variable", va_args_count, spelling);
+
 			if (*p == 'd' || *p == 'i')
 			{
-				var type = _cast(Int(), va_arg(ap, var), file, line);
+				var type = _cast(Int(), va_arg(ap, var), varg_str, file, line, "oprintf");
 				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
 				if (len != -1)
 					result += len;
+				else
+					throw(FormatException(), "Error: some error occured during printing!");
 			}
 			else if (*p == 'm')
 			{
-				var type = _cast(Matrix(), va_arg(ap, var), file, line);
+				var type = _cast(Matrix(), va_arg(ap, var), varg_str, file, line, "oprintf");
 				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
 				if (len != -1)
 					result += len;
+				else
+					throw(FormatException(), "Error: some error occured during printing!");
 			}
 			else if (*p == 'f')
 			{
-				var type = _cast(Float(), va_arg(ap, var), file, line);
+				var type = _cast(Float(), va_arg(ap, var), varg_str, file, line, "oprintf");
 				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
 				if (len != -1)
 					result += len;
+				else
+					throw(FormatException(), "Error: some error occured during printing!");
 			}
 			else if (*p == 'v')
 			{
-				var type = _cast(Object(), va_arg(ap, var), file, line);
+				var type = _cast(Object(), va_arg(ap, var), varg_str, file, line, "oprintf");
 				int len = sfprint(type, stdout, 0, NULL, 0, flag, width, precision);
 				if (len != -1)
 					result += len;
-
+				else
+					throw(FormatException(), "Error: some error occured during printing!");
 			}
 			else
 			{
 				putchar(*p);
 			}
+
+			free(varg_str);
 
 			flag = -1;
 			width = -1;

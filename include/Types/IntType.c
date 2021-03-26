@@ -95,72 +95,6 @@ static int IntType_sfprint(const void *_self, FILE *stream, int bin, char *buffe
 	return -1;  
 }
 
-static int IntType_reader(const char *str, va_list *ap)
-{
-	// Declarations
-	var *result;
-	int number, count;
-	int ignore, width;
-	
-	FILE *stream = NULL;
-
-	va_list ap_copy;
-	va_copy(ap_copy, *ap);
-	
-	if (str == NULL)
-		stream = va_arg(ap_copy, FILE*);
-
-	ignore = va_arg(ap_copy, int);
-	width = va_arg(ap_copy, int);
-	result = va_arg(ap_copy, var*);
-
-	// Getting format size
-	size_t fmt_size = 2;
-
-	if (ignore != -1)
-		fmt_size++;
-
-	if (width != -1)
-		fmt_size += snprintf(NULL, 0, "%d", width);
-
-	// Getting format
-	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
-	*fmt = '%';
-	
-	char *p = fmt + 1;
-	size_t psize = fmt_size - 1;
-
-	if (ignore != -1)
-	{
-		*p++ = '*';
-		psize--;
-	}
-
-	if (width != -1)
-	{
-		int widthN = snprintf(p, psize + 1, "%d", width);
-		p += widthN;
-		psize -= widthN;
-	}
-
-	*p++ = 'd';
-	*p = 0;
-
-	// Getting result
-	if (stream != NULL)
-		count = fscanf(stream, fmt, &number);
-	else
-		count = sscanf(str, fmt, &number);
-
-	if (count != 0)
-		*result = new(Int(), number);
-
-	free(fmt);
-	va_end(ap_copy);
-
-	return count;
-}
-
 static void* IntType_sum(void *_self, void *b)
 {
 	const struct IntType *self = cast(Int(), _self);
@@ -286,7 +220,6 @@ ClassImpl(Int)
 				cmp, IntType_cmp,
 				swap, IntType_swap,
 				sfprint, IntType_sfprint,
-				reader, IntType_reader,
 				sum, IntType_sum,
 				subtract, IntType_subtract,
 				product, IntType_product,

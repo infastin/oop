@@ -15,6 +15,8 @@
  * MatrixClass
  */
 
+// ---
+
 static void* MatrixClass_ctor(void *_self, va_list *ap)
 {
 	struct MatrixClass *self = super_ctor(MatrixClass(), _self, ap);
@@ -45,7 +47,9 @@ static void* MatrixClass_ctor(void *_self, va_list *ap)
  * Selectors
  */
 
-void* minorOf(const void *_self, ...)
+// ---
+
+void* minorOf(const void *_self, unsigned int row, unsigned int column)
 {
 	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
@@ -54,27 +58,12 @@ void* minorOf(const void *_self, ...)
 		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'minorOf' method!",
 				class->name);
 
-	va_list ap;
-	va_start(ap, _self);
-	void* result = mclass->minorOf(_self, &ap);
-	va_end(ap);
+	void* result = mclass->minorOf(_self, row, column);
 
 	return result;
 }
 
-void* vminorOf(const void *_self, va_list *ap)
-{
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (mclass->minorOf == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'minorOf' method!",
-				class->name);
-
-	return mclass->minorOf(_self, ap);
-}
-
-void matrix_size(const void *_self, ...)
+void matrix_size(const void *_self, unsigned int *row, unsigned int *column)
 {
 	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
@@ -83,22 +72,7 @@ void matrix_size(const void *_self, ...)
 		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'matrix_size' method!",
 				class->name);
 
-	va_list ap;
-	va_start(ap, _self);
-	mclass->matrix_size(_self, &ap);
-	va_end(ap);
-}
-
-void vmatrix_size(const void *_self, va_list *ap)
-{
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (mclass->matrix_size == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'matrix_size' method!",
-				class->name);
-
-	mclass->matrix_size(_self, ap);
+	mclass->matrix_size(_self, row, column);
 }
 
 void determinant(const void *_self, void **retval)
@@ -116,6 +90,8 @@ void determinant(const void *_self, void **retval)
 /*
  * Matrix
  */
+
+// ---
 
 static void* Matrix_ctor(void *_self, va_list *ap)
 {
@@ -513,12 +489,9 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 	}
 }
 
-static void* Matrix_minorOf(const void *_self, va_list *ap)
+static void* Matrix_minorOf(const void *_self, unsigned int row, unsigned int column)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
-
-	unsigned int row = va_arg(*ap, unsigned int);
-	unsigned int column = va_arg(*ap, unsigned int);
 
 	if (row >= self->rows || column >= self->columns)
 		throw(MatrixException(), "Error: No such row or/and column with given indexes (%u, %u) in given matrix! (Max: %u, %u)",
@@ -548,12 +521,9 @@ static void* Matrix_minorOf(const void *_self, va_list *ap)
 	return result;
 }
 
-static void Matrix_matrix_size(const void *_self, va_list *ap)
+static void Matrix_matrix_size(const void *_self, unsigned int *rows, unsigned int *columns)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
-
-	unsigned int *rows = va_arg(*ap, unsigned int*);
-	unsigned int *columns = va_arg(*ap, unsigned int*);
 
 	*rows = self->rows;
 	*columns = self->columns;
@@ -659,6 +629,8 @@ static void* Matrix_rnd(void *_self, va_list *ap)
  * Initialization
  */
 
+// ---
+
 ClassImpl(MatrixClass)
 {
 	if (!_MatrixClass)
@@ -702,6 +674,8 @@ ClassImpl(Matrix)
 /*
  * Exception Initialization
  */
+
+// ---
 
 ObjectImpl(MatrixException)
 {

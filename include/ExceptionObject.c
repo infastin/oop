@@ -47,6 +47,27 @@ char* exception_name(const void *_self)
 	return self->name;
 }
 
+char* exception_file(const void *_self)
+{
+	const struct ExceptionObject *self = cast(ExceptionObject(), _self);
+
+	return self->file;
+}
+
+const char* exception_func(const void *_self)
+{
+	const struct ExceptionObject *self = cast(ExceptionObject(), _self);
+
+	return self->func;
+}
+
+int exception_line(const void *_self)
+{
+	const struct ExceptionObject *self = cast(ExceptionObject(), _self);
+
+	return self->line;
+}
+
 /*
  *	Initialization
  */
