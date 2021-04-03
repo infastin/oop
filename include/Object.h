@@ -38,7 +38,9 @@ typedef void *(*cpy_f)(const void *self, void *object);
 typedef void *(*dtor_f)(void *self);
 typedef void  (*set_f)(void *self, va_list *ap);
 typedef void *(*get_f)(const void *self, va_list *ap);
-typedef int   (*sfcsan_f)(const char *str,  va_list *ap);
+
+typedef int   (*sfscan_f)(void *self, FILE *stream, int bin, const char *buffer, int *numb, 
+		int asterisk, int width);
 
 typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
 				int flag, int width, int precision);
@@ -63,7 +65,7 @@ struct Class
 	
 	set_f set;
 	get_f get;
-	sfcsan_f sfscan;
+	sfscan_f sfscan;
 	sfprint_f sfprint;
 };
 

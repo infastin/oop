@@ -74,9 +74,9 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 
 // ---
 
-void* _new(const void *_class, char *file, int line, const char *func, ...)
+void* _new(const void *_class, char *classname, char *file, int line, const char *func, ...)
 {
-	const struct Class *class = cast(Class(), _class);
+	const struct Class *class = _cast(Class(), _class, classname, file, line, func);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -111,9 +111,9 @@ void* _new(const void *_class, char *file, int line, const char *func, ...)
 	return object;
 }
 
-void* _vnew(const void *_class, char *file, int line, const char* func, va_list *ap)
+void* _vnew(const void *_class, char *classname, char *file, int line, const char* func, va_list *ap)
 {
-	const struct Class *class = cast(Class(), _class);
+	const struct Class *class = _cast(Class(), _class, classname, file, line, func);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -145,10 +145,10 @@ void* _vnew(const void *_class, char *file, int line, const char* func, va_list 
 	return object;
 }
 
-void _delete(void *_self, char *file, int line, const char *func)
+void _delete(void *_self, char *selfname, char *file, int line, const char *func)
 {
 	if (_self) {
-		const struct Class *class = classOf(_self);
+		const struct Class *class = _classOf(_self, selfname, file, line, func);
 
 		const char *name = class->name;
 		size_t size = class->size;
@@ -163,9 +163,9 @@ void _delete(void *_self, char *file, int line, const char *func)
 }
 
 
-void* _copy(const void *_self, char *file, int line, const char *func)
+void* _copy(const void *_self, char *selfname, char *file, int line, const char *func)
 {
-	const struct Object *self = cast(Object(), _self);
+	const struct Object *self = _cast(Object(), _self, selfname, file, line, func);
 	const struct Class *class = self->class;
 	struct Object *object;
 
@@ -328,7 +328,7 @@ int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn,
 	return class->sfprint(_self, stream, bin, buffer, maxn, flag, width, precision);
 }
 
-char* __getFmt(int flag, int width, int precision, char *spec)
+char* __getFmtPrint(int flag, int width, int precision, char *spec)
 {
 	int fmt_size = 1;
 
@@ -386,7 +386,59 @@ char* __getFmt(int flag, int width, int precision, char *spec)
 	return fmt;
 }
 
-int sfscan(const void *_self, const char *str, ...)
+char* __getFmtScan(int asterisk, int width, char *spec)
+{
+	int fmt_size = 3;
+
+	// Getting format size
+	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
+
+	if (asterisk != -1)
+		fmt_size++;
+
+	if (width != -1)
+		fmt_size += snprintf(NULL, 0, "%d", width);
+
+	// Getting format
+	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
+
+	if (fmt)
+	{
+		*fmt = '%';
+
+		char *p = fmt + 1;
+		int psize = fmt_size - 1;
+
+		if (asterisk != -1)
+		{
+			*p++ = asterisk;
+			psize--;
+		}
+
+		if (width != -1)
+		{
+			int widthN = snprintf(p, psize + 1, "%d", width);
+			p += widthN;
+			psize -= widthN;
+		}
+
+		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
+		{
+			*p++ = *sp;
+			psize--;
+		}
+
+		*p++ = '%';
+		*p++ = 'n';
+
+		*p = 0;
+	}
+
+	return fmt;
+}
+
+int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
+		int asterisk, int width)
 {
 	const struct Class *class = classOf(_self);
 
@@ -397,13 +449,8 @@ int sfscan(const void *_self, const char *str, ...)
 		exit(EXIT_FAILURE);
 	}
 
-	va_list ap;
 
-	va_start(ap, str);
-	int result = class->sfscan(str, &ap);
-	va_end(ap);
-
-	return result;
+	return class->sfscan(_self, stream, bin, buffer, numb, asterisk, width) - 1;
 }
 
 /*

@@ -46,7 +46,7 @@ struct Matrix
  * @param[in] row    Which row to remove
  * @param[in] column Which column to remove
  *
- * @throw MatrixException If object doesn't have corresponding method
+ * @throw MatrixException
  *
  * @return Matrix without row and column
  */
@@ -59,7 +59,7 @@ void* minorOf(const void *self, unsigned int row, unsigned int column);
  * @param[out] rows    Where will be number of rows
  * @param[out] columns Where will be number of columns
  *
- * @throw MatrixException If object doesn't have corresponding method
+ * @throw MatrixException
  */
 void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
 
@@ -69,7 +69,7 @@ void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
  * @param[in]  self   Matrix
  * @param[out] retval Where will be determinant
  *
- * @throw MatrixException If object doesn't have corresponding method
+ * @throw MatrixException
  */
 void determinant(const void *self, var *retval);
 

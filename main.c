@@ -4,19 +4,16 @@
 #include <time.h>
 
 #include "Init.h"
-#include "Matrix.h"
-#include "Selectors.h"
-#include "limits.h"
 
 int main(int argc, char *argv[])
 {
-	smart var matrix1 = new(Matrix(), Float(), 2, 2);
+	/* smart var matrix1 = new(Matrix(), Float(), 2, 2);
 
 	srand(time(0));	
 
 	rnd(Matrix(), matrix1, 100);
 
-	oprintf("%f\n", matrix1);
+	oprintf("%4.2m\n", matrix1);
 
 	{
 		smart var det;
@@ -33,32 +30,36 @@ int main(int argc, char *argv[])
 	matrix_size(matrix1, &dim1[0], &dim1[1]);
 
 	fwrite(dim1, sizeof(dim1), 1, T);
-	sfprint(matrix1, T, 1, NULL, 0, -1, -1, -1);
+	ofwrite(matrix1, T);
 
 	fclose(T);
 
 	T = fopen("test.bin", "r");
 
 	unsigned int dim2[2];
-	int res = fread(dim2, sizeof(dim2), 1, T);
+	fread(dim2, sizeof(dim2), 1, T);
 
-	printf("%d: %dx%d\n", res, dim2[0], dim2[1]);
+	printf("%dx%d\n", dim2[0], dim2[1]);
 
 	smart var matrix2 = new(Matrix(), Float(), dim2[0], dim2[1]);
 
-	for (int i = 0; i < dim2[0]; ++i) 
-	{ 
-		for (int j = 0; j < dim2[1]; ++j)
-		{ 
-			double val;
-			fread(&val, sizeof(val), 1, T); 
-			set(matrix2, i, j, val);
-		}
+	ofread(matrix2, T);
+
+	oprintf("%4.2m\n", matrix2);
+
+	fclose(T); */
+
+	int bruh = 45678923;
+
+	var bits = new(Bitset(), 32);
+
+	for (int i = 0; i < 32; ++i)
+	{
+		int bit = (bruh & (1 << i)) ? 1 : 0;
+		set(bits, i, bit);
 	}
 
-	oprint(matrix2);
-
-	fclose(T);
+	oprint(bits);
 
 	return 0;
 }

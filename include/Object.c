@@ -201,6 +201,8 @@ static void* Class_ctor(void *_self, va_list *ap)
 			self->get = (get_f) method;
 		else if (selector == (voidf) sfprint)
 			self->sfprint = (sfprint_f) method;
+		else if (selector == (voidf) sfscan)
+			self->sfscan = (sfscan_f) method;
 	}
 
 	va_end(ap_copy);

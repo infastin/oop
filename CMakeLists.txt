@@ -38,7 +38,7 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/TypeClass.c
 			${INCLUDE_FOLDER}/Exception.c
 			${INCLUDE_FOLDER}/ExceptionObject.c
-			${INCLUDE_FOLDER}/Print.c)
+			${INCLUDE_FOLDER}/IO.c)
 
 add_library(leakcheck STATIC
 	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
@@ -46,7 +46,8 @@ add_library(leakcheck STATIC
 add_library(types STATIC
 			${TYPES_FOLDER}/IntType.c
 			${TYPES_FOLDER}/FloatType.c
-			${TYPES_FOLDER}/Matrix.c)
+			${TYPES_FOLDER}/Matrix.c
+			${TYPES_FOLDER}/Bitset.c)
 target_link_libraries(types base)
 
 target_include_directories(base PUBLIC ${DIRS})

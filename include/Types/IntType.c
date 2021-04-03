@@ -64,9 +64,9 @@ static void IntType_get(void *_self, va_list *ap)
 static int IntType_sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn,
 		int flag, int width, int precision)
 {
-	struct IntType *self = cast(Int(), _self);	
+	const struct IntType *self = cast(Int(), _self);	
 
-	char *fmt = __getFmt(flag, width, precision, "d");
+	char *fmt = __getFmtPrint(flag, width, precision, "d");
 
 	if (fmt) {
 		// Getting result
@@ -74,7 +74,12 @@ static int IntType_sfprint(const void *_self, FILE *stream, int bin, char *buffe
 		if (stream != NULL)
 		{
 			if (bin)
+			{
 				size = fwrite(&self->value, sizeof(self->value), 1, stream);
+
+				if (size != 1)
+					size = -1;
+			}
 			else
 				size = fprintf(stream, fmt, self->value);
 		}
@@ -88,11 +93,61 @@ static int IntType_sfprint(const void *_self, FILE *stream, int bin, char *buffe
 	}
 	else
 	{
-		free(fmt);
-		throw(FormatException(), "Error: could not allocate memory for format string!");
+		throw(FormatException(), "Error: could not allocate memory for the format string!");
 	}
 
 	return -1;  
+}
+
+static int IntType_sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
+		int asterisk, int width)
+{
+	struct IntType *self = cast(Int(), _self);
+
+	char *fmt = __getFmtScan(asterisk, width, "d");
+
+	if (fmt)
+	{
+		int size;
+
+		if (stream != NULL)
+		{
+			if (bin)
+			{
+				size = fread(&self->value, sizeof(self->value), 1, stream);
+				
+				if (numb != NULL)
+					*numb = size;
+			}
+			else
+			{
+				int n;
+				size = fscanf(stream, fmt, &self->value, &n);
+
+				if (numb != NULL)
+					*numb = n;
+			}
+		}
+		else if (buffer != NULL)
+		{
+			int n;
+			size = sscanf(buffer, fmt, &self->value, &n);
+
+			if (numb != NULL)
+				*numb = n;
+		}
+		else
+			size = 0;
+
+		free(fmt);
+		return size;
+	}
+	else
+	{
+		throw(FormatException(), "Error: could not allocate memory for the format string!");
+	}
+
+	return -1;
 }
 
 static void* IntType_sum(void *_self, void *b)
@@ -220,6 +275,7 @@ ClassImpl(Int)
 				cmp, IntType_cmp,
 				swap, IntType_swap,
 				sfprint, IntType_sfprint,
+				sfscan, IntType_sfscan,
 				sum, IntType_sum,
 				subtract, IntType_subtract,
 				product, IntType_product,

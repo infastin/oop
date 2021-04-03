@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "IO.h"
 #include "Exception.h"
 #include "Matrix.h"
-#include "Print.h"
 #include "ReferenceCounter.h"
 #include "Selectors.h"
 #include "IntType.h"
@@ -120,17 +120,17 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 
 	mass = (void***)calloc(sizeof(void**), self->rows);
 	if (mass == NULL)
-		throw(MatrixException(), "Fatal Error: Matrix pointers allocation error in constructor!");
+		throw(MatrixException(), "Fatal Error: Matrix pointers allocation error!");
 
 	mass[0] = (void**)calloc(sizeof(void*), self->rows * self->columns);
 	if (mass[0] == NULL)
-		throw(MatrixException(), "Fatal Error: Matrix items allocation error in constructor!");
+		throw(MatrixException(), "Fatal Error: Matrix items allocation error!");
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
 		mass[i] = mass[0] + i * self->columns;
 
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			mass[i][j] = NULL;
 		}
@@ -155,17 +155,24 @@ static void* Matrix_cpy(const void *_self, void *_object)
 
 	mass = (void***)calloc(sizeof(void**), object->rows);
 	if (mass == NULL)
-		throw(MatrixException(), "Fatal Error: Matrix pointers allocation error in copy!");
+	{
+		delete(object);
+		throw(MatrixException(), "Fatal Error: Matrix pointers allocation error!");
+	}
 
 	mass[0] = (void**)calloc(sizeof(void*), object->rows * object->columns);
 	if (mass[0] == NULL)
-		throw(MatrixException(), "Fatal Error: Matrix items allocation error in copy!");
+	{
+		free(mass);
+		delete(object);
+		throw(MatrixException(), "Fatal Error: Matrix items allocation error!");
+	}
 
-	for (int i = 0; i < object->rows; i++)
+	for (unsigned int i = 0; i < object->rows; i++)
 	{
 		mass[i] = mass[0] + i * object->columns;
 
-		for (int j = 0; j < object->columns; j++)
+		for (unsigned int j = 0; j < object->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
 				mass[i][j] = NULL;
@@ -220,9 +227,9 @@ static void* Matrix_dtor(void *_self)
 
 	if (self->mass != NULL)
 	{
-		for (int i = 0; i < self->rows; i++)
+		for (unsigned int i = 0; i < self->rows; i++)
 		{
-			for (int j = 0; j < self->columns; j++)
+			for (unsigned int j = 0; j < self->columns; j++)
 			{
 				delete(self->mass[i][j]);
 			}
@@ -243,16 +250,16 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 	// Getting size
 	int size = 0;
 
-	for (int i = 0; i < self->rows; ++i) 
+	for (unsigned int i = 0; i < self->rows; ++i) 
 	{
-		for (int j = 0; j < self->columns; ++j) 
+		for (unsigned int j = 0; j < self->columns; ++j) 
 		{
 			int chck = sfprint(self->mass[i][j], NULL, 0, NULL, 0, flag, width, precision);
 	
-			if (chck != -1)
+			if (chck > 0)
 				size += chck;
 			else
-				throw(FormatException(), "Error: some error occured during printing!");
+				throw(IOException(), "Error: some error occured during printing!");
 
 			if (j != self->columns - 1)
 				size++;
@@ -269,21 +276,26 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		{
 			size = 0;
 
-			for (int i = 0; i < self->rows; ++i) 
+			for (unsigned int i = 0; i < self->rows; ++i) 
 			{
-				for (int j = 0; j < self->columns; ++j) 
+				for (unsigned int j = 0; j < self->columns; ++j) 
 				{
-					size += sfprint(self->mass[i][j], stream, bin, NULL, 0, flag, width, precision);
+					int sz = sfprint(self->mass[i][j], stream, 1, NULL, 0, flag, width, precision);
+
+					if (sz > 0)
+						size += sz;
+					else
+						throw(IOException(), "Error: some error occured during printing!");
 				}
 			}
 		}
 		else
 		{
-			for (int i = 0; i < self->rows; ++i) 
+			for (unsigned int i = 0; i < self->rows; ++i) 
 			{
-				for (int j = 0; j < self->columns; ++j) 
+				for (unsigned int j = 0; j < self->columns; ++j) 
 				{
-					sfprint(self->mass[i][j], stream, bin, NULL, 0, flag, width, precision);
+					sfprint(self->mass[i][j], stream, 0, NULL, 0, flag, width, precision);
 
 					if (j != self->columns - 1)
 						fputc(' ', stream);
@@ -297,16 +309,22 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 	else if (buffer != NULL)
 	{
 		char *p = buffer;
-		int psize = size;
+		int psize;
 
-		for (int i = 0; i < self->rows; ++i) 
+		if (maxn < size + 1)
+			psize = size + 1;
+		else
+			psize = maxn;
+
+		for (unsigned int i = 0; i < self->rows; ++i)
 		{
-			for (int j = 0; j < self->columns; ++j) 
+			for (unsigned int j = 0; j < self->columns && psize != 1; ++j) 
 			{
-				int sz = sfprint(self->mass[i][j], NULL, bin, p, psize + 1, flag, width, precision);
+				int sz = sfprint(self->mass[i][j], NULL, 0, p, psize + 1, flag, width, precision);
 
-				if (sz != -1)
+				if (sz > 0)
 				{
+					
 					psize -= sz;
 					p += sz;
 
@@ -318,9 +336,12 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 				}
 				else
 				{
-					throw(FormatException(), "Error: some error occured during printing!");
+					throw(IOException(), "Error: some error occured during printing!");
 				}
 			}
+
+			if (psize == 1)
+				break;
 
 			if (i != self->rows - 1)
 			{
@@ -333,6 +354,69 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 	}
 
 	return size;
+}
+
+static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
+		int asterisk, int width)
+{
+	const struct Matrix *self = cast(Matrix(), _self);
+
+	int numb_res = 0;
+	int result = 0;
+
+	if (stream != NULL)
+	{
+		for (unsigned int i = 0; i < self->rows; ++i) 
+		{
+			for (unsigned int j = 0; j < self->columns; ++j) 
+			{
+				if (!self->mass[i][j])
+					self->mass[i][j] = new(self->type);
+
+				int n;
+				int res = sfscan(self->mass[i][j], stream, bin, NULL, &n, asterisk, width);
+
+				if (res > 0)
+				{
+					result += res;
+					numb_res += n;
+				}
+				else
+					throw(IOException(), "Error: some error occured during scanning!");
+			}
+		}
+	}
+	else if (buffer != NULL)
+	{
+		const char *p = buffer;
+
+		for (unsigned int i = 0; i < self->rows; ++i) 
+		{
+			for (unsigned int j = 0; j < self->columns; ++j) 
+			{
+				if (!self->mass[i][j])
+					self->mass[i][j] = new(self->type);
+
+				int n;
+				int res = sfscan(self->mass[i][j], NULL, 0, p, &n, asterisk, width);
+
+				if (res > 0)
+				{
+					p += n;
+
+					result += res;
+					numb_res += n;
+				}
+				else
+					throw(IOException(), "Error: some error occured during scanning!");
+			}
+		}
+	}
+
+	if (numb != NULL)
+		*numb = numb_res;
+
+	return result;
 }
 
 static void* Matrix_sum(void *_self, void *b)
@@ -355,9 +439,9 @@ static void* Matrix_sum(void *_self, void *b)
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			result->mass[i][j] = sum(self->mass[i][j], B->mass[i][j]);
 		}
@@ -386,9 +470,9 @@ static void* Matrix_subtract(void *_self, void *b)
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			result->mass[i][j] = subtract(self->mass[i][j], B->mass[i][j]);
 		}
@@ -417,11 +501,11 @@ static void* Matrix_product(void *_self, void *b)
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, B->columns);
 
-	for (int i = 0; i < result->rows; i++)
+	for (unsigned int i = 0; i < result->rows; i++)
 	{
-		for (int j = 0; j < result->columns; j++)
+		for (unsigned int j = 0; j < result->columns; j++)
 		{
-			for (int k = 0; k < self->columns; k++)
+			for (unsigned int k = 0; k < self->columns; k++)
 			{
 				var prod = product(self->mass[i][k], B->mass[k][j]);
 				
@@ -447,12 +531,12 @@ static void Matrix_scmulti(void *_self, va_list *ap)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
 		va_list ap_copy;
 		va_copy(ap_copy, *ap);
 
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
 				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
@@ -470,12 +554,12 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
 		va_list ap_copy;
 		va_copy(ap_copy, *ap);
 
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
 				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
@@ -500,11 +584,11 @@ static void* Matrix_minorOf(const void *_self, unsigned int row, unsigned int co
 	struct Matrix *result = new(Matrix(), self->type, self->rows - 1, self->columns - 1);
 	void ***p = result->mass;
 
-	for (int i = 0; i < self->rows; i++)
+	for (unsigned int i = 0; i < self->rows; i++)
 	{
 		if (i != row)
 		{
-			for (int j = 0; j < self->columns; j++)
+			for (unsigned int j = 0; j < self->columns; j++)
 			{
 				if (j != column)
 				{
@@ -553,7 +637,7 @@ static void Matrix_determinant(const void *_self, void **retval)
 	}
 	else
 	{
-		for (int j = 0; j < self->columns; j++)
+		for (unsigned int j = 0; j < self->columns; j++)
 		{
 			var res;
 			smart var minor = minorOf(_self, 0, j);
@@ -611,9 +695,9 @@ static void* Matrix_rnd(void *_self, va_list *ap)
 		self = new(Matrix(), type, rows, columns);
 	}
 
-	for (int i = 0; i < self->rows; ++i) 
+	for (unsigned int i = 0; i < self->rows; ++i) 
 	{
-		for (int j = 0; j < self->columns; j++) 
+		for (unsigned int j = 0; j < self->columns; j++) 
 		{
 			va_list ap_copy;
 			va_copy(ap_copy, *ap);
@@ -656,6 +740,7 @@ ClassImpl(Matrix)
 				set, Matrix_set,
 				get, Matrix_get,
 				sfprint, Matrix_sfprint,
+				sfscan, Matrix_sfscan,
 				sum, Matrix_sum,
 				subtract, Matrix_subtract,
 				product, Matrix_product,
