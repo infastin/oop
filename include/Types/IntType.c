@@ -150,7 +150,7 @@ static int IntType_sfscan(void *_self, FILE *stream, int bin, const char *buffer
 	return -1;
 }
 
-static void* IntType_sum(void *_self, void *b)
+static void* IntType_sum(const void *_self, const void *b)
 {
 	const struct IntType *self = cast(Int(), _self);
 	const struct IntType *B = cast(Int(), b);
@@ -161,7 +161,7 @@ static void* IntType_sum(void *_self, void *b)
 	return result;
 }
 
-static void* IntType_subtract(void *_self, void *b)
+static void* IntType_subtract(const void *_self, const void *b)
 {
 	const struct IntType *self = cast(Int(), _self);
 	const struct IntType *B = cast(Int(), b);
@@ -172,7 +172,7 @@ static void* IntType_subtract(void *_self, void *b)
 	return result;
 }
 
-static void* IntType_product(void *_self, void *b)
+static void* IntType_product(const void *_self, const void *b)
 {
 	const struct IntType *self = cast(Int(), _self);
 	const struct IntType *B = cast(Int(), b);
@@ -183,7 +183,7 @@ static void* IntType_product(void *_self, void *b)
 	return result;
 }
 
-static void* IntType_divide(void *_self, void *b)
+static void* IntType_divide(const void *_self, const void *b)
 {
 	const struct IntType *self = cast(Int(), _self);
 	const struct IntType *B = cast(Int(), b);

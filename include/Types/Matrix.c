@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include "Selectors.h"
 #include "IntType.h"
 #include "TypeClass.h"
+#include "Utils.h"
 
 /*
  * MatrixClass
@@ -373,6 +375,22 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 				if (!self->mass[i][j])
 					self->mass[i][j] = new(self->type);
 
+				if (j != 0 && bin == 0)
+				{
+					int c;
+					while (isspace(c = fgetc(stream)))
+					{
+						if (c == '\n' || c == EOF)
+						{
+							char *rspel = int_spelling(i + 1);
+							char *clspel = int_spelling(j);
+
+							throw(IOException(), "Error: didn't expect newline character after %u%s element at %u%s row!", 
+									j, clspel, i + 1, rspel);
+						}
+					}
+				}
+
 				int n;
 				int res = sfscan(self->mass[i][j], stream, bin, NULL, &n, asterisk, width);
 
@@ -383,6 +401,21 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 				}
 				else
 					throw(IOException(), "Error: some error occured during scanning!");
+			}
+
+			if (bin == 0 && i != self->rows - 1)
+			{
+				int c;
+				while ((c = fgetc(stream)) != '\n')
+				{
+					if (!isspace(c) || c == EOF)
+					{
+						char *rspel = int_spelling(i + 1);
+
+						throw(IOException(), "Error: couldn't find newline character after scanning %u%s row!", 
+								i + 1, rspel);
+					}
+				}
 			}
 		}
 	}
@@ -397,6 +430,23 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 				if (!self->mass[i][j])
 					self->mass[i][j] = new(self->type);
 
+				if (j != 0)
+				{
+					while (isspace(*p))
+					{
+						if (*p == '\n' || *p == 0)
+						{
+							char *rspel = int_spelling(i + 1);
+							char *clspel = int_spelling(j);
+
+							throw(IOException(), "Error: didn't expect newline character after %u%s element at %u%s row!", 
+									j, clspel, i + 1, rspel);
+						}
+
+						p++;
+					}
+				}
+
 				int n;
 				int res = sfscan(self->mass[i][j], NULL, 0, p, &n, asterisk, width);
 
@@ -410,6 +460,22 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 				else
 					throw(IOException(), "Error: some error occured during scanning!");
 			}
+
+			if (i != self->rows - 1)
+			{
+				while(*p != '\n')
+				{
+					if (!isspace(*p) || *p == 0)
+					{
+						char *rspel = int_spelling(i + 1);
+
+						throw(IOException(), "Error: couldn't find newline character after scanning %u%s row!", 
+								i + 1, rspel);
+					}
+
+					p++;
+				}
+			}
 		}
 	}
 
@@ -419,7 +485,7 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 	return result;
 }
 
-static void* Matrix_sum(void *_self, void *b)
+static void* Matrix_sum(const void *_self, const void *b)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);
@@ -450,7 +516,7 @@ static void* Matrix_sum(void *_self, void *b)
 	return result;
 }
 
-static void* Matrix_subtract(void *_self, void *b)
+static void* Matrix_subtract(const void *_self, const void *b)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);
@@ -481,7 +547,7 @@ static void* Matrix_subtract(void *_self, void *b)
 	return result;
 }
 
-static void* Matrix_product(void *_self, void *b)
+static void* Matrix_product(const void *_self, const void *b)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 	const struct Matrix *B = cast(Matrix(), b);

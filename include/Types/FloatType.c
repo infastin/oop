@@ -156,7 +156,7 @@ static int FloatType_sfscan(void *_self, FILE *stream, int bin, const char *buff
 	return -1;
 }
 
-static void* FloatType_sum(void *_self, void *b)
+static void* FloatType_sum(const void *_self, const void *b)
 {
 	const struct FloatType *self = cast(Float(), _self);
 	const struct FloatType *B = cast(Float(), b);
@@ -167,7 +167,7 @@ static void* FloatType_sum(void *_self, void *b)
 	return result;
 }
 
-static void* FloatType_subtract(void *_self, void *b)
+static void* FloatType_subtract(const void *_self, const void *b)
 {
 	const struct FloatType *self = cast(Float(), _self);
 	const struct FloatType *B = cast(Float(), b);
@@ -178,7 +178,7 @@ static void* FloatType_subtract(void *_self, void *b)
 	return result;
 }
 
-static void* FloatType_product(void *_self, void *b)
+static void* FloatType_product(const void *_self, const void *b)
 {
 	const struct FloatType *self = cast(Float(), _self);
 	const struct FloatType *B = cast(Float(), b);
@@ -189,7 +189,7 @@ static void* FloatType_product(void *_self, void *b)
 	return result;
 }
 
-static void* FloatType_divide(void *_self, void *b)
+static void* FloatType_divide(const void *_self, const void *b)
 {
 	const struct FloatType *self = cast(Float(), _self);
 	const struct FloatType *B = cast(Float(), b);

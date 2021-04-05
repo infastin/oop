@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
@@ -10,6 +11,154 @@
 #include "IntType.h"
 #include "FloatType.h"
 #include "Selectors.h"
+#include "Utils.h"
+
+/*
+ * Selectors
+ */
+
+// ---
+
+char* __getFmtPrint(int flag, int width, int precision, char *spec)
+{
+	int fmt_size = 1;
+
+	// Getting format size
+	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
+
+	if (flag != -1)
+		fmt_size++;
+
+	if (width != -1)
+		fmt_size += snprintf(NULL, 0, "%d", width);
+
+	if (precision != -1)
+		fmt_size += snprintf(NULL, 0, "%d", precision) + 1;
+
+	// Getting format
+	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
+
+	if (fmt)
+	{
+		*fmt = '%';
+
+		char *p = fmt + 1;
+		int psize = fmt_size - 1;
+
+		if (flag != -1)
+		{
+			*p++ = flag;
+			psize--;
+		}
+
+		if (width != -1)
+		{
+			int widthN = snprintf(p, psize + 1, "%d", width);
+			p += widthN;
+			psize -= widthN;
+		}
+
+		if (precision != -1)
+		{
+			int precisionN = snprintf(p, psize + 1, ".%d", precision);
+			p += precisionN;
+			psize -= precisionN;
+		}
+
+		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
+		{
+			*p++ = *sp;
+			psize--;
+		}
+
+		*p = 0;
+	}
+
+	return fmt;
+}
+
+char* __getFmtScan(int asterisk, int width, char *spec)
+{
+	int fmt_size = 3;
+
+	// Getting format size
+	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
+
+	if (asterisk != -1)
+		fmt_size++;
+
+	if (width != -1)
+		fmt_size += snprintf(NULL, 0, "%d", width);
+
+	// Getting format
+	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
+
+	if (fmt)
+	{
+		*fmt = '%';
+
+		char *p = fmt + 1;
+		int psize = fmt_size - 1;
+
+		if (asterisk != -1)
+		{
+			*p++ = asterisk;
+			psize--;
+		}
+
+		if (width != -1)
+		{
+			int widthN = snprintf(p, psize + 1, "%d", width);
+			p += widthN;
+			psize -= widthN;
+		}
+
+		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
+		{
+			*p++ = *sp;
+			psize--;
+		}
+
+		*p++ = '%';
+		*p++ = 'n';
+
+		*p = 0;
+	}
+
+	return fmt;
+}
+
+int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn, 
+		int flag, int width, int precision)
+{
+	const struct Class *class = classOf(_self);
+	const struct IOInterface *io = icast(IOInterface(), class);
+
+	if (io->sfprint == NULL)
+	{
+		fprintf(stderr, "sfprint: Error: Class '%s' doesn't implement 'IOInterface' and doesn't have 'sfprint' method!\n",
+				class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	return io->sfprint(_self, stream, bin, buffer, maxn, flag, width, precision);
+}
+
+int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
+		int asterisk, int width)
+{
+	const struct Class *class = classOf(_self);
+	const struct IOInterface *io = icast(IOInterface(), class);
+
+	if (io->sfscan == NULL) 
+	{
+		fprintf(stderr, "sfscan: Error: Class '%s' doesn't implement 'IOInterface' and doesn't have 'sfscan' method!\n",
+				class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	return io->sfscan(_self, stream, bin, buffer, numb, asterisk, width);
+}
 
 /*
  * Helpers
@@ -19,15 +168,7 @@
 
 char* __varg_string(int n)
 {
-	char *spelling;
-	if (n % 10 == 1 && n != 11)
-		spelling = "st";
-	else if (n % 10 == 2 && n != 12)
-		spelling = "nd";
-	else if (n % 10 == 3 && n != 13)
-		spelling = "td";
-	else
-		spelling = "th";
+	char *spelling = int_spelling(n);
 
 	int res_len = snprintf(NULL, 0, "%d%s variable", n, spelling);
 	char *result = (char*)calloc(sizeof(char), res_len + 1);
@@ -116,10 +257,14 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 						if (width <= INT_MAX - digit)
 							width += digit;
 						else
-							throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+							exception_throw(GlobalException(), IOException(), 
+									file, line, func, 
+									"Error: Too big width! (Higher than %d)", INT_MAX);
 					}
 					else
-						throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+						exception_throw(GlobalException(), IOException(), 
+								file, line, func, 
+								"Error: Too big width! (Higher than %d)", INT_MAX);
 				}
 			}
 
@@ -146,10 +291,14 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 							if (precision <= INT_MAX - digit)
 								precision += digit;
 							else
-								throw(IOException(), "Error: Too big precision! (Higher than %d)", INT_MAX);
+								exception_throw(GlobalException(), IOException(), 
+										file, line, func,
+										"Error: Too big precision! (Higher than %d)", INT_MAX);
 						}
 						else
-							throw(IOException(), "Error: Too big precision! (Higher than %d)", INT_MAX);
+							exception_throw(GlobalException(), IOException(), 
+									file, line, func,
+									"Error: Too big precision! (Higher than %d)", INT_MAX);
 					}
 				}
 			}
@@ -178,22 +327,28 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 
 			// Printing
 			const void *type = NULL;
+			char *type_str;
 
 			switch (*p) {
 				case 'd':
 					type = Int();
+					type_str = "Int()";
 					break;
 				case 'i':
 					type = Int();
+					type_str = "Int()";
 					break;
 				case 'f':
 					type = Float();
+					type_str = "Float()";
 					break;
 				case 'm':
 					type = Matrix();
+					type_str = "Matrix()";
 					break;
 				case 'v':
 					type = Object();
+					type_str = "Object()";
 					break;
 			}	
 
@@ -201,7 +356,7 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), varg_str, file, line, func);
+				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
 				len = sfprint(obj, stream, 0, NULL, 0, flag, width, precision);
 
 				if (len != -1)
@@ -213,7 +368,9 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 			free(varg_str);
 
 			if (len == -1)
-				throw(IOException(), "Error: some error occured during printing!");
+				exception_throw(GlobalException(), 
+						IOException(), file, line, func, 
+						"Error: some error occured during printing!");
 
 			flag = -1;
 			width = -1;
@@ -335,10 +492,14 @@ int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *f
 						if (width <= INT_MAX - digit)
 							width += digit;
 						else
-							throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+							exception_throw(GlobalException(), IOException(), 
+									file, line, func, 
+									"Error: Too big width! (Higher than %d)", INT_MAX);
 					}
 					else
-						throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+						exception_throw(GlobalException(), IOException(), 
+								file, line, func, 
+								"Error: Too big width! (Higher than %d)", INT_MAX);
 				}
 			}
 
@@ -366,22 +527,28 @@ int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *f
 
 			// Scanning
 			const void *type = NULL;
+			char *type_str;
 
 			switch (*p) {
 			case 'd':
 				type = Int();
+				type_str = "Int()";
 				break;
 			case 'i':
 				type = Int();
+				type_str = "Int()";
 				break;
 			case 'f':
 				type = Float();
+				type_str = "Float()";
 				break;
 			case 'm':
 				type = Matrix();
+				type_str = "Matrix()";
 				break;
 			case 'v':
 				type = Object();
+				type_str = "Object()";
 				break;
 			}
 
@@ -389,7 +556,7 @@ int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *f
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), varg_str, file, line, func);
+				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
 				res = sfscan(obj, stream, 0, NULL, NULL, asterisk, width);
 
 				if (res != -1 && res != EOF)
@@ -399,7 +566,9 @@ int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *f
 			free(varg_str);
 
 			if (res == -1 || res == EOF)
-				throw(IOException(), "Error: some error occured during scanning!");
+				exception_throw(GlobalException(), IOException(), 
+						file, line, func,
+						"Error: some error occured during scanning!");
 
 			asterisk = -1;
 			width = -1;
@@ -486,10 +655,14 @@ int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const c
 						if (width <= INT_MAX - digit)
 							width += digit;
 						else
-							throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+							exception_throw(GlobalException(), IOException(), 
+									file, line, func, 
+									"Error: Too big width! (Higher than %d)", INT_MAX);
 					}
 					else
-						throw(IOException(), "Error: Too big width! (Higher than %d)", INT_MAX);
+						exception_throw(GlobalException(), IOException(), 
+								file, line, func, 
+								"Error: Too big width! (Higher than %d)", INT_MAX);				
 				}
 			}
 
@@ -517,22 +690,28 @@ int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const c
 			
 			// Scanning
 			const void *type = NULL;
+			char *type_str;
 			
 			switch (*p) {
 				case 'd':
 					type = Int();
+					type_str = "Int()";
 					break;
 				case 'i':
 					type = Int();
+					type_str = "Int()";
 					break;
 				case 'f':
 					type = Float();
+					type_str = "Float()";
 					break;
 				case 'm':
 					type = Matrix();
+					type_str = "Matrix()";
 					break;
 				case 'v':
 					type = Object();
+					type_str = "Object()";
 					break;
 			}
 
@@ -540,7 +719,7 @@ int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const c
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), varg_str, file, line, func);
+				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
 
 				int n;
 				res = sfscan(obj, NULL, 0, s, &n, asterisk, width);
@@ -555,7 +734,9 @@ int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const c
 			free(varg_str);
 
 			if (res == -1 || res == EOF)
-				throw(IOException(), "Error: some error occured during scanning!");
+				exception_throw(GlobalException(), IOException(), 
+						file, line, func,
+						"Error: some error occured during scanning!");
 
 			asterisk = -1;
 			width = -1;
@@ -593,6 +774,19 @@ int oread(void *self)
 }
 
 /*
+ * Interface Initialization
+ */
+InterfaceImpl(IOInterface)
+{
+	if (!_IOInterface)
+	{
+		_IOInterface = inew("IOInterface", 0);
+	}
+
+	return _IOInterface;
+}
+
+/*
  * Exception Initialization
  */
 
@@ -600,7 +794,7 @@ int oread(void *self)
 
 ObjectImpl(IOException)
 {
-	if (_IOException)
+	if (!_IOException)
 	{
 		_IOException = new(ExceptionObject(), "IOException");
 	}

@@ -40,7 +40,7 @@ char* exception_message(const void *_self)
 	return self->msg;
 }
 
-char* exception_name(const void *_self)
+const char* exception_name(const void *_self)
 {
 	const struct ExceptionObject *self = cast(ExceptionObject(), _self);
 	

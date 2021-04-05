@@ -8,6 +8,8 @@
 #include "Exception.h"
 #include "ExceptionObject.h"
 #include "IO.h"
+#include "Utils.h"
+#include "Interface.h"
 
 #include "Types/IntType.h"
 #include "Types/FloatType.h"

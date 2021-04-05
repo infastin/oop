@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 #include "Init.h"
 
@@ -49,17 +50,36 @@ int main(int argc, char *argv[])
 
 	fclose(T); */
 
-	int bruh = 45678923;
+	srand(time(0));
 
-	var bits = new(Bitset(), 32);
+	int i1 = 30;
+	int i2 = 20;
+
+	var bits1 = new(Bitset(), 32);
+	var bits2 = new(Bitset(), 32);
 
 	for (int i = 0; i < 32; ++i)
 	{
-		int bit = (bruh & (1 << i)) ? 1 : 0;
-		set(bits, i, bit);
+		int bit = (i1 & (1 << i)) ? 1 : 0;
+		set(bits1, i, bit);
 	}
 
-	oprint(bits);
+	for (int i = 0; i < 32; ++i)
+	{
+		int bit = (i2 & (1 << i)) ? 1 : 0;
+		set(bits2, i, bit);
+	}
+
+	oprintln(bits1);
+	oprintln(bits2);
+
+	int res = cmp(bits1, bits2);
+
+	printf("%d", res);
+
+	const struct Interface *io = IOInterface();
+
+	printf("%s %d %u\n", io->name, io->ext_number, io->magic);
 
 	return 0;
 }

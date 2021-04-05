@@ -17,7 +17,7 @@ ClassHeader(ExceptionObject);
 struct ExceptionObject
 {
 	const struct Object _;
-	char *name;
+	const char *name;
 	char *msg;
 	char *file;
 	int   line;
@@ -42,7 +42,7 @@ char* exception_message(const void *self);
  *
  * @return C string with name
  */
-char* exception_name(const void *self);
+const char* exception_name(const void *self);
 
 
 /**

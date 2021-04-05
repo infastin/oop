@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "TypeClass.h"
@@ -31,6 +32,11 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 	self->inverse_multi = NULL;
 	self->rnd = NULL;
 
+	struct IOInterface *self_io = icast(IOInterface(), _self);
+
+	self_io->sfprint = NULL;
+	self_io->sfscan = NULL;
+
 	while ((selector = va_arg(ap_copy, voidf)))
 	{
 		voidf method = va_arg(ap_copy, voidf);
@@ -61,6 +67,10 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 			self->inverse_multi = (inverse_multi_f) method;
 		else if (selector == (voidf) rnd)
 			self->rnd = (rnd_f) method;
+		else if (selector == (voidf) sfprint)
+			self_io->sfprint = (sfprint_f) method;
+		else if (selector == (voidf) sfscan)
+			self_io->sfscan = (sfscan_f) method;
 	}
 
 	va_end(ap_copy);
@@ -330,10 +340,15 @@ ClassImpl(TypeClass)
 {
 	if (!_TypeClass) 
 	{
-		_TypeClass = new(Class(), "TypeClass", 
+		void *tclass = new(Class(), "TypeClass", 
 				Class(), sizeof(struct TypeClass),
 				ctor, TypeClass_ctor,
 				0);
+
+		tclass = implement(tclass, 1,
+				IOInterface(), offsetof(struct TypeClass, io));
+
+		_TypeClass = tclass;
 	}
 
 	return _TypeClass;

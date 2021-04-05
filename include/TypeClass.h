@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "Object.h"
+#include "IO.h"
 
 ClassHeader(TypeClass);
 ObjectHeader(TypeException);
@@ -26,6 +27,7 @@ typedef void  (*swap_f)(void *self, void *b);
 struct TypeClass
 {
 	const struct Class _;
+	
 	cmp_f cmp;
 	swap_f swap;
 	sum_f sum;
@@ -39,6 +41,8 @@ struct TypeClass
 	inverse_add_f inverse_add;
 	inverse_multi_f inverse_multi;
 	rnd_f rnd;
+
+	const struct IOInterface io;
 };
 
 int   cmp(const void *self, const void *b);

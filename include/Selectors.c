@@ -74,9 +74,11 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 
 // ---
 
-void* _new(const void *_class, char *classname, char *file, int line, const char *func, ...)
+void* _new(const void *_class, 
+		char *classname, char *file, int line, const char *func, 
+		...)
 {
-	const struct Class *class = _cast(Class(), _class, classname, file, line, func);
+	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -86,7 +88,7 @@ void* _new(const void *_class, char *classname, char *file, int line, const char
 		exit(EXIT_FAILURE);
 	}
 
-	object = (struct Object*)calloc(1, class->size);
+	object = (struct Object*)calloc(class->size, 1);
 
 	if (object == NULL)
 	{
@@ -111,9 +113,11 @@ void* _new(const void *_class, char *classname, char *file, int line, const char
 	return object;
 }
 
-void* _vnew(const void *_class, char *classname, char *file, int line, const char* func, va_list *ap)
+void* _vnew(const void *_class, 
+		char *classname, char *file, int line, const char* func, 
+		va_list *ap)
 {
-	const struct Class *class = _cast(Class(), _class, classname, file, line, func);
+	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -123,7 +127,7 @@ void* _vnew(const void *_class, char *classname, char *file, int line, const cha
 		exit(EXIT_FAILURE);
 	}	
 
-	object = (struct Object*)calloc(1, class->size);
+	object = (struct Object*)calloc(class->size, 1);
 
 	if (object == NULL)
 	{
@@ -145,7 +149,8 @@ void* _vnew(const void *_class, char *classname, char *file, int line, const cha
 	return object;
 }
 
-void _delete(void *_self, char *selfname, char *file, int line, const char *func)
+void _delete(void *_self, 
+		char *selfname, char *file, int line, const char *func)
 {
 	if (_self) {
 		const struct Class *class = _classOf(_self, selfname, file, line, func);
@@ -163,9 +168,10 @@ void _delete(void *_self, char *selfname, char *file, int line, const char *func
 }
 
 
-void* _copy(const void *_self, char *selfname, char *file, int line, const char *func)
+void* _copy(const void *_self, 
+		char *selfname, char *file, int line, const char *func)
 {
-	const struct Object *self = _cast(Object(), _self, selfname, file, line, func);
+	const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
 	const struct Class *class = self->class;
 	struct Object *object;
 
@@ -176,7 +182,7 @@ void* _copy(const void *_self, char *selfname, char *file, int line, const char 
 		exit(EXIT_FAILURE);
 	}
 
-	object = (struct Object*)calloc(1, class->size);
+	object = (struct Object*)calloc(class->size, 1);
 
 	if (object == NULL)
 	{
@@ -199,6 +205,94 @@ void* _copy(const void *_self, char *selfname, char *file, int line, const char 
 			file, line, func, "copy", class->name, class->size);
 
 	return res;
+}
+
+void* _implement(void *_self, unsigned int impl_number,
+		char *selfname, char *file, int line, const char *func,
+		...)
+{
+	struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
+
+	if (impl_number != 0)
+	{
+		self->impl_number += impl_number;	
+		self->implements = (struct InterfaceElem*)realloc(self->implements, sizeof(struct InterfaceElem) * impl_number);
+
+		if (self->implements == NULL)
+		{
+			selerror("Fatal Error: List of implemented interfaces of class '%s' allocation error!", 
+					file, line, func, "implement", self->name);
+			exit(EXIT_FAILURE);
+		}
+
+		va_list ap;
+		va_start(ap, func);
+
+		const struct Interface *inter = va_arg(ap, const struct Interface*);
+
+		for (unsigned int i = 0; i < impl_number; ++i)
+		{
+			size_t offset = va_arg(ap, size_t);
+
+			self->implements[i].interface = inter;
+			self->implements[i].offset = offset;
+		}
+
+		va_end(ap);
+	}
+
+	return self;
+}
+
+/*
+ * Create interface
+ */
+const void *_inew(char *name, unsigned int ext_number, 
+		char *file, int line, const char *func, 
+		...)
+{
+	struct Interface *interface = (struct Interface*)calloc(1, sizeof(struct Interface));
+
+	if (interface == NULL)
+	{
+		selerror("Fatal Error: Interface '%s' allocation error!", 
+				file, line, func, "inew", name);
+		exit(EXIT_FAILURE);
+	}
+
+	interface->name = name;
+	interface->magic = MAGIC_INUM;
+	interface->ext_number = ext_number;
+	interface->extends = NULL;
+
+	if (ext_number != 0)
+	{ 	
+		interface->extends = (struct InterfaceElem*)calloc(sizeof(struct InterfaceElem), ext_number);
+
+		if (interface->extends == NULL)
+		{
+			selerror("Fatal Error: List of extended interfaces of interface '%s' allocation error!", 
+					file, line, func, "inew", name);
+			exit(EXIT_FAILURE);
+		}
+
+		va_list ap;
+		va_start(ap, func);
+
+		const struct Interface *inter = va_arg(ap, const struct Interface*);
+
+		for (unsigned int i = 0; i < ext_number; ++i)
+		{
+			size_t offset = va_arg(ap, size_t);
+
+			interface->extends[i].interface = inter;
+			interface->extends[i].offset = offset;
+		}
+
+		va_end(ap);
+	}
+
+	return (const void*) interface;
 }
 
 /*
@@ -311,146 +405,6 @@ void* cpy(const void *_self, void *object)
 	}
 
 	return class->cpy(_self, object);
-}
-
-int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn, 
-		int flag, int width, int precision)
-{
-	const struct Class *class = classOf(_self);
-
-	if (class->sfprint == NULL)
-	{
-		fprintf(stderr, "sfprint: Error: Class '%s' doesn't have 'sfprint' method!\n",
-				class->name);
-		exit(EXIT_FAILURE);
-	}
-
-	return class->sfprint(_self, stream, bin, buffer, maxn, flag, width, precision);
-}
-
-char* __getFmtPrint(int flag, int width, int precision, char *spec)
-{
-	int fmt_size = 1;
-
-	// Getting format size
-	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
-
-	if (flag != -1)
-		fmt_size++;
-
-	if (width != -1)
-		fmt_size += snprintf(NULL, 0, "%d", width);
-
-	if (precision != -1)
-		fmt_size += snprintf(NULL, 0, "%d", precision) + 1;
-
-	// Getting format
-	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
-
-	if (fmt)
-	{
-		*fmt = '%';
-
-		char *p = fmt + 1;
-		int psize = fmt_size - 1;
-
-		if (flag != -1)
-		{
-			*p++ = flag;
-			psize--;
-		}
-
-		if (width != -1)
-		{
-			int widthN = snprintf(p, psize + 1, "%d", width);
-			p += widthN;
-			psize -= widthN;
-		}
-
-		if (precision != -1)
-		{
-			int precisionN = snprintf(p, psize + 1, ".%d", precision);
-			p += precisionN;
-			psize -= precisionN;
-		}
-
-		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
-		{
-			*p++ = *sp;
-			psize--;
-		}
-
-		*p = 0;
-	}
-
-	return fmt;
-}
-
-char* __getFmtScan(int asterisk, int width, char *spec)
-{
-	int fmt_size = 3;
-
-	// Getting format size
-	for (char *sp = spec; *sp != 0; fmt_size++, sp++);
-
-	if (asterisk != -1)
-		fmt_size++;
-
-	if (width != -1)
-		fmt_size += snprintf(NULL, 0, "%d", width);
-
-	// Getting format
-	char *fmt = (char*)calloc(sizeof(char), fmt_size + 1);
-
-	if (fmt)
-	{
-		*fmt = '%';
-
-		char *p = fmt + 1;
-		int psize = fmt_size - 1;
-
-		if (asterisk != -1)
-		{
-			*p++ = asterisk;
-			psize--;
-		}
-
-		if (width != -1)
-		{
-			int widthN = snprintf(p, psize + 1, "%d", width);
-			p += widthN;
-			psize -= widthN;
-		}
-
-		for (char *sp = spec; *sp != 0 && psize > 0; sp++)
-		{
-			*p++ = *sp;
-			psize--;
-		}
-
-		*p++ = '%';
-		*p++ = 'n';
-
-		*p = 0;
-	}
-
-	return fmt;
-}
-
-int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
-		int asterisk, int width)
-{
-	const struct Class *class = classOf(_self);
-
-	if (class->sfscan == NULL) 
-	{
-		fprintf(stderr, "sfscan: Error: Class '%s' doesn't have 'sfscan' method!\n",
-				class->name);
-		exit(EXIT_FAILURE);
-	}
-
-
-	return class->sfscan(_self, stream, bin, buffer, numb, asterisk, width) - 1;
 }
 
 /*
