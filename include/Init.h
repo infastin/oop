@@ -16,4 +16,8 @@
 #include "Types/Matrix.h"
 #include "Types/Bitset.h"
 
+#include "Interfaces/ScalarOperatorsInterface.h"
+#include "Interfaces/OperatorsInterface.h"
+#include "Interfaces/IOInterface.h"
+
 #endif /* end of include guard: INIT_H_5CYSDZGM */

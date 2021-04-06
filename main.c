@@ -4,11 +4,13 @@
 #include <time.h>
 #include <limits.h>
 
+#include "Bitset.h"
+#include "IO.h"
 #include "Init.h"
 
 int main(int argc, char *argv[])
 {
-	/* smart var matrix1 = new(Matrix(), Float(), 2, 2);
+	/*smart var matrix1 = new(Matrix(), Float(), 2, 2);
 
 	srand(time(0));	
 
@@ -52,34 +54,34 @@ int main(int argc, char *argv[])
 
 	srand(time(0));
 
-	int i1 = 30;
-	int i2 = 20;
+	int i1 = rand();
+	//int i2 = 10;
 
-	var bits1 = new(Bitset(), 32);
-	var bits2 = new(Bitset(), 32);
-
-	for (int i = 0; i < 32; ++i)
-	{
-		int bit = (i1 & (1 << i)) ? 1 : 0;
-		set(bits1, i, bit);
-	}
+	smart struct Bitset *bits1 = new(Bitset(), 32);
+	//smart struct Bitset *bits2 = new(Bitset(), 32);
 
 	for (int i = 0; i < 32; ++i)
 	{
-		int bit = (i2 & (1 << i)) ? 1 : 0;
-		set(bits2, i, bit);
+		int bit1 = (i1 & (1 << i)) ? 1 : 0;
+		set(bits1, i, bit1);
+
+		//int bit2 = (i2 & (1 << i)) ? 1 : 0;
+		//set(bits2, i, bit2);
 	}
+
+	printf("%lu\n", bits1->length);
 
 	oprintln(bits1);
-	oprintln(bits2);
+	lshift(bits1, 28);
 
-	int res = cmp(bits1, bits2);
+	printf("%lu\n", bits1->length);
 
-	printf("%d", res);
+	oprintln(bits1);
+	rshift(bits1, 28);
 
-	const struct Interface *io = IOInterface();
+	printf("%lu\n", bits1->length);
 
-	printf("%s %d %u\n", io->name, io->ext_number, io->magic);
+	oprintln(bits1);
 
 	return 0;
 }

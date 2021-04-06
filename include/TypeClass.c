@@ -20,22 +20,36 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 
 	self->cmp = NULL;
 	self->swap = NULL;
-	self->sum = NULL;
-	self->subtract = NULL;
-	self->product = NULL;
-	self->divide = NULL;
-	self->scadd = NULL;
-	self->scsub = NULL;
-	self->scmulti = NULL;
-	self->scdivide = NULL;
+	self->rnd = NULL;
+
+/*! TODO: Other operators
+*  \todo modulo, and, or, xor, left and right shifts
+*/	
+
 	self->inverse_add = NULL;
 	self->inverse_multi = NULL;
-	self->rnd = NULL;
 
 	struct IOInterface *self_io = icast(IOInterface(), _self);
 
 	self_io->sfprint = NULL;
 	self_io->sfscan = NULL;
+
+	struct OperatorsInterface *self_oper = icast(OperatorsInterface(), _self);
+
+	self_oper->sum = NULL;
+	self_oper->subtract = NULL;
+	self_oper->product = NULL;
+	self_oper->divide = NULL;
+	self_oper->onecompl = NULL;
+	self_oper->rshift = NULL;
+	self_oper->lshift = NULL;
+
+	struct ScalarOperatorsInterface *self_sc = icast(ScalarOperatorsInterface(), _self);
+
+	self_sc->scadd = NULL;
+	self_sc->scsub = NULL;
+	self_sc->scmulti = NULL;
+	self_sc->scdivide = NULL;
 
 	while ((selector = va_arg(ap_copy, voidf)))
 	{
@@ -45,32 +59,41 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 			self->cmp = (cmp_f) method;
 		else if (selector == (voidf) swap)
 			self->swap = (swap_f) method;
-		else if (selector == (voidf) sum)
-			self->sum = (sum_f) method;
-		else if (selector == (voidf) subtract)
-			self->subtract = (subtract_f) method;
-		else if (selector == (voidf) product)
-			self->product = (product_f) method;
-		else if (selector == (voidf) divide)
-			self->divide = (divide_f) method;
-		else if (selector == (voidf) scadd)
-			self->scadd = (scadd_f) method;
-		else if (selector == (voidf) scsub)
-			self->scsub = (scsub_f) method;
-		else if (selector == (voidf) scmulti)
-			self->scmulti = (scmulti_f) method;
-		else if (selector == (voidf) scdivide)
-			self->scdivide = (scdivide_f) method;
 		else if (selector == (voidf) inverse_add)
 			self->inverse_add = (inverse_add_f) method;
 		else if (selector == (voidf) inverse_multi)
 			self->inverse_multi = (inverse_multi_f) method;
 		else if (selector == (voidf) rnd)
 			self->rnd = (rnd_f) method;
+	
+		else if (selector == (voidf) sum)
+			self_oper->sum = (sum_f) method;
+		else if (selector == (voidf) subtract)
+			self_oper->subtract = (subtract_f) method;
+		else if (selector == (voidf) product)
+			self_oper->product = (product_f) method;
+		else if (selector == (voidf) divide)
+			self_oper->divide = (divide_f) method;
+		else if (selector == (voidf) onecompl)
+			self_oper->onecompl = (onecompl_f) method;
+		else if (selector == (voidf) lshift)
+			self_oper->lshift = (lshift_f) method;
+		else if (selector == (voidf) rshift)
+			self_oper->rshift = (rshift_f) method;
+
 		else if (selector == (voidf) sfprint)
 			self_io->sfprint = (sfprint_f) method;
 		else if (selector == (voidf) sfscan)
 			self_io->sfscan = (sfscan_f) method;
+		
+		else if (selector == (voidf) scadd)
+			self_sc->scadd = (scadd_f) method;
+		else if (selector == (voidf) scsub)
+			self_sc->scsub = (scsub_f) method;
+		else if (selector == (voidf) scmulti)
+			self_sc->scmulti = (scmulti_f) method;
+		else if (selector == (voidf) scdivide)
+			self_sc->scdivide = (scdivide_f) method;
 	}
 
 	va_end(ap_copy);
@@ -92,173 +115,6 @@ int cmp(const void *_self, const void *b)
 				class->name);
 
 	return tclass->cmp(_self, b);
-}
-
-// Sum two variables of the same type, 
-// return new variable with the same type and the result of sum as value.
-void* sum(const void *_self, const void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->sum == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'sum' method!",
-				class->name);
-
-	return tclass->sum(_self, b);
-}
-
-// Subtract one variable from other of the same type, 
-// return new variable with the same type and the result of subtraction as value.
-void* subtract(const void *_self, const void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->subtract == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'subtract' method!",
-				class->name);
-
-	return tclass->subtract(_self, b);
-}
-
-// Multiply two variables of the same type, 
-// return new variable with the same type and the result of multiplication as value.
-void* product(const void *_self, const void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->product == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'product' method!",
-				class->name);
-
-	return tclass->product(_self, b);
-}
-
-// Divide one variable by other of the same type, 
-// return new variable with the same type and the result of division as value.
-void* divide(const void *_self, const void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->divide == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'divide' method!",
-				class->name);
-
-	return tclass->divide(_self, b);
-}
-
-// Add scalar to the variable of some type
-void scadd(void *_self, ...)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scadd == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scadd' method!",
-				class->name);
-	va_list ap;
-	va_start(ap, _self);
-	tclass->scadd(_self, &ap);
-	va_end(ap);
-}
-
-void vscadd(void *_self, va_list *ap)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scadd == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scadd' method!",
-				class->name);
-
-	tclass->scadd(_self, ap);
-}
-
-// Subtract scalar from the variable of some type
-void scsub(void *_self, ...)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scsub == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scsub' method!",
-				class->name);
-
-	va_list ap;
-	va_start(ap, _self);
-	tclass->scsub(_self, &ap);
-	va_end(ap);
-}
-
-void vscsub(void *_self, va_list *ap)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scsub == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scsub' method!",
-				class->name);
-
-	tclass->scsub(_self, ap);
-}
-
-// Multiply on scalar variable of some type
-void scmulti(void *_self, ...)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scmulti == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scmulti' method!",
-				class->name);
-
-	va_list ap;
-	va_start(ap, _self);
-	tclass->scmulti(_self, &ap);
-	va_end(ap);
-}
-
-void vscmulti(void *_self, va_list *ap)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scmulti == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scmulti' method!",
-				class->name);
-
-	tclass->scmulti(_self, ap);
-}
-
-// Divide by scalar variable of some type
-void scdivide(void *_self, ...)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scdivide == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scdivide' method!",
-				class->name);
-
-	va_list ap;
-	va_start(ap, _self);
-	tclass->scdivide(_self, &ap);
-	va_end(ap);
-}
-
-void vscdivide(void *_self, va_list *ap)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->scdivide == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'scdivide' method!",
-				class->name);
-
-	tclass->scdivide(_self, ap);
 }
 
 // Return variable, inversed by addition, of some type  (a copy)
@@ -345,8 +201,10 @@ ClassImpl(TypeClass)
 				ctor, TypeClass_ctor,
 				0);
 
-		tclass = implement(tclass, 1,
-				IOInterface(), offsetof(struct TypeClass, io));
+		tclass = implement(tclass, 3,
+				IOInterface(), offsetof(struct TypeClass, io),
+				ScalarOperatorsInterface(), offsetof(struct TypeClass, sc),
+				OperatorsInterface(), offsetof(struct TypeClass, oper));
 
 		_TypeClass = tclass;
 	}

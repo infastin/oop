@@ -18,8 +18,8 @@ struct Bitset
 {
 	const struct Object _;
 	char *bytes;
-	unsigned int capacity;
-	unsigned int length;
+	size_t capacity;
+	size_t length;
 };
 
 /**
@@ -28,7 +28,7 @@ struct Bitset
  * @param self Bitset
  * @param numb Number of bits to grow
  */
-void bitset_grow(void *self, unsigned int numb);
+void bitset_grow(void *self, size_t numb);
 
 /**
  * @brief Unsafe version of Bitset getter
@@ -53,8 +53,8 @@ void bitset_grow(void *self, unsigned int numb);
 	else 																\
 	{ 																	\
 		self->bytes[(bit) / CHAR_BIT] |= 1 << ((bit) % CHAR_BIT); 		\
-		if (bit >= self->length) 										\
-			self->length = bit + 1; 									\
+		if ((bit) >= self->length && (val) == 1) 						\
+			self->length = (bit) + 1; 									\
 	}
 
 

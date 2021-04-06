@@ -11,6 +11,7 @@
  * Logging
  */
 
+#if defined (LOGGING)
 static FILE *ref_log = NULL;
 
 void reflog(char *fmt, ...)
@@ -34,6 +35,9 @@ void reflog(char *fmt, ...)
 		free(dt);
 	}
 }
+#else
+void reflog(char *fmt, ...) {};
+#endif
 
 /*
  * ReferenceCounter

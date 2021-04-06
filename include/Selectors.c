@@ -12,7 +12,7 @@
  */
 
 // ---
-
+#if defined (LOGGING)
 static FILE *sel_log = NULL;
 
 void sellog(char *fmt, char *file, int line, const char *func, const char *func_name, ...)
@@ -67,6 +67,28 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 		free(dt);
 	}
 }
+#else
+void sellog(char *fmt, char *file, int line, const char *func, const char *func_name, ...) {};
+
+void selerror(char *fmt, char *file, int line, const char *func, const char *func_name, ...)
+{
+	size_t dt_size = snprintf(NULL, 0, "%s %s: %s:%d: %s: %s: %s", 
+			__DATE__, __TIME__, file, line, func, func_name, fmt);
+
+	char *dt = (char*)calloc(sizeof(char), dt_size + 1);
+	snprintf(dt, dt_size + 1, "%s %s: %s:%d: %s: %s: %s", 
+			__DATE__, __TIME__, file, line, func, func_name, fmt);
+
+	va_list ap;
+	va_start(ap, func_name);
+
+	fprintf(stderr, dt, ap);
+	fputc('\n', stderr);
+
+	va_end(ap);
+	free(dt);
+}
+#endif
 
 /*
 // Create, copy and delete selectors
@@ -228,10 +250,9 @@ void* _implement(void *_self, unsigned int impl_number,
 		va_list ap;
 		va_start(ap, func);
 
-		const struct Interface *inter = va_arg(ap, const struct Interface*);
-
 		for (unsigned int i = 0; i < impl_number; ++i)
 		{
+			const struct Interface *inter = va_arg(ap, const struct Interface*);
 			size_t offset = va_arg(ap, size_t);
 
 			self->implements[i].interface = inter;
@@ -279,10 +300,9 @@ const void *_inew(char *name, unsigned int ext_number,
 		va_list ap;
 		va_start(ap, func);
 
-		const struct Interface *inter = va_arg(ap, const struct Interface*);
-
 		for (unsigned int i = 0; i < ext_number; ++i)
 		{
+			const struct Interface *inter = va_arg(ap, const struct Interface*);
 			size_t offset = va_arg(ap, size_t);
 
 			interface->extends[i].interface = inter;

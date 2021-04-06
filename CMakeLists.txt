@@ -24,12 +24,14 @@ endif()
 
 set(INCLUDE_FOLDER include)
 set(TYPES_FOLDER ${INCLUDE_FOLDER}/Types)
+set(INTERFACES_FOLDER ${INCLUDE_FOLDER}/Interfaces)
 set(LEAKCHECK_FOLDER ${INCLUDE_FOLDER}/Leakcheck)
 
 set(DIRS 
 	${INCLUDE_FOLDER} 
 	${TYPES_FOLDER} 
-	${LEAKCHECK_FOLDER})
+	${LEAKCHECK_FOLDER}
+	${INTERFACES_FOLDER})
 
 add_library(base STATIC
 			${INCLUDE_FOLDER}/Selectors.c 
@@ -41,6 +43,11 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/ExceptionObject.c
 			${INCLUDE_FOLDER}/IO.c
 			${INCLUDE_FOLDER}/Utils.c)
+
+add_library(interfaces STATIC
+			${INTERFACES_FOLDER}/IOInterface.c
+			${INTERFACES_FOLDER}/ScalarOperatorsInterface.c
+			${INTERFACES_FOLDER}/OperatorsInterface.c)
 
 add_library(leakcheck STATIC
 	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
@@ -54,7 +61,8 @@ target_link_libraries(types base)
 
 target_include_directories(base PUBLIC ${DIRS})
 target_include_directories(types PUBLIC ${DIRS})
+target_include_directories(interfaces PUBLIC ${DIRS})
 
 add_executable(main main.c)
 target_link_libraries(main
-					  base types)
+					  base types interfaces)
