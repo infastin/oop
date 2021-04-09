@@ -40,6 +40,7 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 	self_oper->subtract = NULL;
 	self_oper->product = NULL;
 	self_oper->divide = NULL;
+	self_oper->modulo = NULL;
 	self_oper->onecompl = NULL;
 	self_oper->rshift = NULL;
 	self_oper->lshift = NULL;
@@ -74,6 +75,8 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 			self_oper->product = (product_f) method;
 		else if (selector == (voidf) divide)
 			self_oper->divide = (divide_f) method;
+		else if (selector == (voidf) modulo)
+			self_oper->modulo = (modulo_f) method;
 		else if (selector == (voidf) onecompl)
 			self_oper->onecompl = (onecompl_f) method;
 		else if (selector == (voidf) lshift)

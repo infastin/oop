@@ -162,7 +162,7 @@ static void* FloatType_sum(const void *_self, const void *b)
 	const struct FloatType *B = cast(Float(), b);
 
 	double result_value = self->value + B->value;
-	void *result = new(Float(), result_value);
+	struct FloatType *result = new(Float(), result_value);
 
 	return result;
 }
@@ -173,7 +173,7 @@ static void* FloatType_subtract(const void *_self, const void *b)
 	const struct FloatType *B = cast(Float(), b);
 
 	double result_value = self->value - B->value;
-	void *result = new(Float(), result_value);
+	struct FloatType *result = new(Float(), result_value);
 
 	return result;
 }
@@ -184,7 +184,7 @@ static void* FloatType_product(const void *_self, const void *b)
 	const struct FloatType *B = cast(Float(), b);
 
 	double result_value = self->value * B->value;
-	void *result = new(Float(), result_value);
+	struct FloatType *result = new(Float(), result_value);
 
 	return result;
 }
@@ -195,7 +195,7 @@ static void* FloatType_divide(const void *_self, const void *b)
 	const struct FloatType *B = cast(Float(), b);
 
 	double result_value = self->value / B->value;
-	void *result = new(Float(), result_value);
+	struct FloatType *result = new(Float(), result_value);
 
 	return result;
 }

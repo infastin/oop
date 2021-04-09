@@ -51,6 +51,18 @@ void* divide(const void *_self, const void *b)
 	return oper->divide(_self, b);
 }
 
+void* modulo(const void *_self, const void *b)
+{
+	const struct Class *class = classOf(_self);
+	const struct OperatorsInterface *oper = icast(OperatorsInterface(), class);
+
+	if (oper->modulo == NULL)
+		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'modulo' method of 'OperatorsInterface'!",
+				class->name);
+
+	return oper->modulo(_self, b);
+}
+
 void onecompl(void *_self)
 {
 	const struct Class *class = classOf(_self);

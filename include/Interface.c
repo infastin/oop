@@ -1,5 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+
+#if defined(_WIN32)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
 
 #include "Exception.h"
 #include "Interface.h"
@@ -66,9 +72,29 @@ ssize_t _doesExtend(const void *_interface, const void *_self,
 	return offset;
 }
 
+static void sigcatch(int signal)
+{
+	if (signal == SIGBUS)
+	{
+		fprintf(stderr, "icast: Error: Caught Bus Error, exiting!");
+		exit(EXIT_FAILURE);
+	}
+
+	if (signal == SIGSEGV)
+	{
+		fprintf(stderr, "icast: Error: Caught Segmentation Fault, exiting!");
+		exit(EXIT_FAILURE);
+	}
+}
+
 void* _icast(const void *_interface, const void *_self, 
 		char *iname, char *selfname, char *file, int line, const char *func)
 {
+	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
+#ifdef SIGBUS
+	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
+#endif
+
 	const struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
 	const struct Interface *interface = _isInterface(_interface, iname, file, line, func);
 
@@ -107,6 +133,11 @@ void* _icast(const void *_interface, const void *_self,
 				file, line, func, self->name, interface->name);
 		exit(EXIT_FAILURE);
 	}
+
+#ifdef SIGBUS
+	signal(SIGBUS, sigbus);
+#endif
+	signal(SIGSEGV, sigsegv);
 
 	return (void*) (((char*) self) + offset);
 }

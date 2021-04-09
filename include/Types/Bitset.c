@@ -8,6 +8,7 @@
 #include "Exception.h"
 #include "Object.h"
 #include "Selectors.h"
+#include "ReferenceCounter.h"
 
 #define BYTES(bits) (((bits) + CHAR_BIT - 1) / CHAR_BIT)
 
@@ -49,6 +50,27 @@ static void Bitset_sub(void *_self, size_t bit, int value)
 		bitset_set(self, bit, val - value);
 }
 
+static void Bitset_fixlen(void *_self)
+{
+	struct Bitset *self = _self;
+
+	if (self->length == 0)
+		return;
+
+	for (size_t i = self->length - 1; i >= 0; --i)
+	{
+		int val = bitset_get(self, i);
+
+		if (val == 1)
+			break;
+
+		self->length--;
+
+		if (i == 0)
+			break;
+	}
+}
+
 /*
  * Methods
  */
@@ -66,7 +88,7 @@ static void* Bitset_ctor(void *_self, va_list *ap)
 	}
 
 	self->capacity = BYTES(numb);
-	self->length = 0;
+	self->length = numb;
 	self->bytes = (char*)calloc(sizeof(char), self->capacity);
 
 	if (self->bytes == NULL)
@@ -102,10 +124,7 @@ static void* Bitset_cpy(const void *_self, void *_object)
 		throw(BitsetException(), "Fatal Error: Bitset allocation error!");
 	}
 
-	for (size_t i = 0; i < object->capacity; i++)
-	{
-		object->bytes[i] = self->bytes[i];
-	}
+	memcpy(object->bytes, self->bytes, BYTES(self->length));
 
 	return object;
 }
@@ -155,34 +174,34 @@ static int Bitset_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		{
 			size = 0;
 
-			for (size_t i = self->capacity - 1; i >= 0; --i)
-			{
-				int sz = fwrite(&self->bytes[i], 1, 1, stream);
+			int sz = fwrite(self->bytes, 1, BYTES(self->length), stream);
 
-				if (sz != 1)
-					throw(BitsetException(), "Error: some error occured during printing!");
-
-				size += sz;
-
-				if (i == 0)
-					break;
-			}
+			if (sz == BYTES(self->length))
+				size = sz;
+			else
+				throw(BitsetException(), "Error: some error occured during printing!");
 		}
 		else
 		{
-			for (size_t i = self->capacity - 1; i >= 0; --i)
+			for (size_t i = BYTES(self->length) - 1; i >= 0; --i)
 			{
-				for (int j = CHAR_BIT - 1; j >= 0; --j)
+				int bits_to_print;
+				
+				if (i != BYTES(self->length) - 1 || self->length % CHAR_BIT == 0)
+					bits_to_print = CHAR_BIT - 1;
+				else
+					bits_to_print = self->length % CHAR_BIT - 1;
+
+				for (int j = bits_to_print; j >= 0; --j)
 				{
 					int bit = (self->bytes[i] & (1 << j)) ? 1 : 0;
-					
+
 					fprintf(stream, "%d", bit);
 				}
 
 				if (i != 0)
 					fputc(' ', stream);
-
-				if (i == 0)
+				else
 					break;
 			}
 		}
@@ -197,18 +216,27 @@ static int Bitset_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		else
 			psize = maxn;
 
-		for (size_t i = self->capacity - 1; i >= 0; --i)
+		for (size_t i = BYTES(self->length) - 1; i >= 0; --i)	
 		{
-			for (int j = CHAR_BIT - 1; j >= 0 && psize != 1; --j)
+			int bits_to_print;
+			
+			if (i != BYTES(self->length) - 1 || self->length % CHAR_BIT == 0)
+				bits_to_print = CHAR_BIT - 1;
+			else
+				bits_to_print = self->length % CHAR_BIT - 1;
+
+			for (int j = bits_to_print; j >= 0; --j)	
 			{
 				int bit = (self->bytes[i] & (1 << j)) ? 1 : 0;
 				int sz = snprintf(buffer, maxn, "%d", bit);
 
-				if (sz < 0)
+				if (sz > 0)
+				{
+					p += sz;
+					psize -= sz;
+				}
+				else
 					throw(BitsetException(), "Error: some error occured during printing!");
-
-				p += sz;
-				psize -= sz;
 
 				if (j == 0)
 					break;
@@ -222,8 +250,7 @@ static int Bitset_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 				*p++ = ' ';
 				psize--;
 			}
-
-			if (i == 0)
+			else
 				break;
 		}
 
@@ -237,15 +264,6 @@ static int Bitset_cmp(const void *_self, const void *b)
 {
 	const struct Bitset *self = cast(Bitset(), _self);
 	const struct Bitset *B = cast(Bitset(), b);
-
-	if (self->length > B->length)
-		return 1;
-	
-	if (self->length < B->length)
-		return -1;
-
-	if (self->length == 0)
-		return 0;
 
 	for (size_t i = self->length - 1; i >= 0; --i)
 	{
@@ -346,14 +364,11 @@ static void* Bitset_sum(const void *_self, const void *b)
 		lower = self;
 	}
 
-	struct Bitset *result = new(Bitset(), higher->length);
-
-	memcpy(result->bytes, higher->bytes, BYTES(higher->length));
-	result->length = higher->length;
+	struct Bitset *result = copy(higher);
 
 	for (size_t i = 0; i < lower->length; ++i)
 	{
-		int val = bitset_get(B, i);
+		int val = bitset_get(lower, i);
 		Bitset_add(result, i, val);
 	}
 
@@ -365,36 +380,49 @@ static void* Bitset_subtract(const void *_self, const void *b)
 	const struct Bitset *self = cast(Bitset(), _self);
 	const struct Bitset *B = cast(Bitset(), b);
 
-	const struct Bitset *higher, *lower;
+	const struct Bitset *higher, *lower,
+		  				*higher_by_len, *lower_by_len;
 
-	int first;
+	int invert = 0;
 
-	if (Bitset_cmp(self, b) > 0)
+	if (Bitset_cmp(self, B) >= 0)
 	{
-		first = 1;
 		higher = self;
 		lower = B;
 	}
 	else 
 	{
-		first = 0;
+		invert = 1;
 		higher = B;
 		lower = self;
 	}
 
-	struct Bitset *result = new(Bitset(), higher->length);
+	if (higher->length >= lower->length)
+	{
+		higher_by_len = higher;
+		lower_by_len = lower;
+	}
+	else
+	{
+		invert = 1;
+		higher_by_len = lower;
+		lower_by_len = higher;
+	}
 
-	memcpy(result->bytes, higher->bytes, BYTES(higher->length));
-	result->length = higher->length;
+	struct Bitset *result = copy(higher);
+	result->length = higher_by_len->length;
 
-	for (size_t i = 0; i < lower->length; ++i)
+	for (size_t i = 0; i < lower_by_len->length; ++i)
 	{
 		int val = bitset_get(lower, i);
 		Bitset_sub(result, i, val);
 	}
 
-	if (first == 0)
+	if (invert)
+	{
 		Bitset_onecompl(result);
+		Bitset_add(result, 0, 1);
+	}
 
 	return result;
 }
@@ -535,7 +563,7 @@ static void* Bitset_product(const void *_self, const void *b)
 
 	const struct Bitset *higher, *lower;
 
-	if (self->capacity > B->capacity)
+	if (Bitset_cmp(self, B) > 0)
 	{
 		higher = self;
 		lower = B;
@@ -546,9 +574,131 @@ static void* Bitset_product(const void *_self, const void *b)
 		lower = self;
 	}
 
-	void *result = new(Bitset(), higher->capacity * CHAR_BIT);
+	struct Bitset *result;
 
+	if (higher->length == 0)
+		result = copy(higher);
+	else if (lower->length == 0)
+		result = copy(lower);
+	else
+	{
+		result = NULL;
 
+		for (size_t i = 0; i < lower->length; ++i)
+		{
+			if (bitset_get(lower, i) == 1)
+			{
+				struct Bitset *tmp = copy(higher);
+				Bitset_lshift(tmp, i);
+
+				if (result == NULL)
+					result = tmp;
+				else
+				{
+					struct Bitset *sum = Bitset_sum(result, tmp);
+
+					delete(result);
+					delete(tmp);
+
+					result = sum;
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
+static void* Bitset_divide(const void *_self, const void *b)
+{
+	const struct Bitset *dividend = cast(Bitset(), _self);
+	const struct Bitset *divisor = cast(Bitset(), b);
+
+	struct Bitset *quotient = copy(dividend);
+	struct Bitset *remainder = new(Bitset(), quotient->length + 1);
+	remainder->length = quotient->length + 1;
+
+	for (size_t i = 0; i < quotient->length; i++)
+	{
+		Bitset_lshift(remainder, 1);
+		Bitset_lshift(quotient, 1);
+
+		remainder->length--;
+		quotient->length--;
+
+		bitset_set(remainder, 0, bitset_get(quotient, quotient->length));
+		
+		struct Bitset *new_remainder;
+
+		if (bitset_last(remainder) == 0)
+			new_remainder = Bitset_subtract(remainder, divisor);
+		else
+			new_remainder = Bitset_sum(remainder, divisor);
+
+		new_remainder->length = remainder->length;
+		delete(remainder);
+		remainder = new_remainder;
+
+		if (bitset_last(remainder) == 0)
+		{
+			bitset_set(quotient, 0, 1);
+		}
+	}
+	
+	delete(remainder);
+	Bitset_fixlen(quotient);
+	return quotient;
+}
+
+static void* Bitset_modulo(const void *_self, const void *b)
+{
+	const struct Bitset *dividend = cast(Bitset(), _self);
+	const struct Bitset *divisor = cast(Bitset(), b);
+
+	struct Bitset *quotient = copy(dividend);
+	struct Bitset *remainder = new(Bitset(), quotient->length + 1);
+	remainder->length = quotient->length + 1;
+
+	for (size_t i = 0; i <= quotient->length; i++)
+	{
+		if (i != quotient->length)
+		{
+			Bitset_lshift(remainder, 1);
+			Bitset_lshift(quotient, 1);
+
+			remainder->length--;
+			quotient->length--;
+
+			bitset_set(remainder, 0, bitset_get(quotient, quotient->length));
+
+			struct Bitset *new_remainder;
+
+			if (bitset_last(remainder) == 0)
+				new_remainder = Bitset_subtract(remainder, divisor);
+			else
+				new_remainder = Bitset_sum(remainder, divisor);
+
+			new_remainder->length = remainder->length;
+			delete(remainder);
+			remainder = new_remainder;
+
+			if (bitset_last(remainder) == 0)
+			{
+				bitset_set(quotient, 0, 1);
+			}
+		}
+		else if (bitset_last(remainder) == 1)
+		{
+			struct Bitset *new_remainder = Bitset_sum(remainder, divisor);
+			new_remainder->length = remainder->length;
+			delete(remainder);
+			remainder = new_remainder;
+		}
+	}
+
+	delete(quotient);
+	Bitset_fixlen(remainder);
+	return remainder;
 }
 
 /*
@@ -573,6 +723,45 @@ void bitset_grow(void *_self, size_t numb)
 		throw(BitsetException(), "Fatal Error: Bitset reallocation error!");
 }
 
+size_t bitset_inclen(void *_self, size_t numb)
+{
+	struct Bitset *self = cast(Bitset(), _self);
+
+	if (self->length + numb >= self->capacity * CHAR_BIT)
+		bitset_grow(self, self->length + numb);
+
+	self->length += numb;
+	return self->length;
+}
+
+size_t bitset_declen(void *_self, size_t numb)
+{
+	struct Bitset *self = cast(Bitset(), _self);
+
+	if (numb > self->length)
+		throw(BitsetException(), "Error: Bitset length can't be less than zero!");
+
+	self->length -= numb;
+	return self->length;
+}
+
+int bitset_getlast(void *_self)
+{
+	struct Bitset *self = cast(Bitset(), _self);
+
+	if (self->length == 0)
+		return 0;
+
+	return bitset_get(self, self->length - 1);
+}
+
+size_t bitset_length(void *_self)
+{
+	struct Bitset *self = cast(Bitset(), _self);
+
+	return self->length;
+}
+
 /*
  * Initialization
  */
@@ -595,6 +784,9 @@ ClassImpl(Bitset)
 				scsub, Bitset_scsub,
 				sum, Bitset_sum,
 				subtract, Bitset_subtract,
+				product, Bitset_product,
+				divide, Bitset_divide,
+				modulo, Bitset_modulo,
 				onecompl, Bitset_onecompl,
 				lshift, Bitset_lshift,
 				rshift, Bitset_rshift,

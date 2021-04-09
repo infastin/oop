@@ -43,11 +43,13 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/ExceptionObject.c
 			${INCLUDE_FOLDER}/IO.c
 			${INCLUDE_FOLDER}/Utils.c)
+target_link_libraries(base types interfaces)
 
 add_library(interfaces STATIC
 			${INTERFACES_FOLDER}/IOInterface.c
 			${INTERFACES_FOLDER}/ScalarOperatorsInterface.c
 			${INTERFACES_FOLDER}/OperatorsInterface.c)
+target_link_libraries(interfaces base)
 
 add_library(leakcheck STATIC
 	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
@@ -57,7 +59,7 @@ add_library(types STATIC
 			${TYPES_FOLDER}/FloatType.c
 			${TYPES_FOLDER}/Matrix.c
 			${TYPES_FOLDER}/Bitset.c)
-target_link_libraries(types base)
+target_link_libraries(types base interfaces)
 
 target_include_directories(base PUBLIC ${DIRS})
 target_include_directories(types PUBLIC ${DIRS})

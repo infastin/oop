@@ -11,6 +11,7 @@ typedef void *(*sum_f)(const void *self, const void *b);
 typedef void *(*subtract_f)(const void *self, const void *b);
 typedef void *(*product_f)(const void *self, const void *b);
 typedef void *(*divide_f)(const void *self, const void *b);
+typedef void *(*modulo_f)(const void *self, const void *b);
 
 typedef void  (*onecompl_f)(void *self);
 typedef void  (*lshift_f)(void *self, size_t shift);
@@ -22,6 +23,7 @@ struct OperatorsInterface
 	subtract_f subtract;
 	product_f product;
 	divide_f divide;
+	modulo_f modulo;
 
 	onecompl_f onecompl;
 	lshift_f lshift;
@@ -32,6 +34,7 @@ void* sum(const void *self, const void *b);
 void* subtract(const void *self, const void *b);
 void* product(const void *self, const void *b);
 void* divide(const void *self, const void *b);
+void* modulo(const void *self, const void *b);
 
 void onecompl(void *_self);
 void lshift(void *_self, size_t shift);

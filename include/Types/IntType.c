@@ -156,7 +156,7 @@ static void* IntType_sum(const void *_self, const void *b)
 	const struct IntType *B = cast(Int(), b);
 
 	int result_value = self->value + B->value;
-	void *result = new(Int(), result_value);
+	struct IntType *result = new(Int(), result_value);
 
 	return result;
 }
@@ -167,7 +167,7 @@ static void* IntType_subtract(const void *_self, const void *b)
 	const struct IntType *B = cast(Int(), b);
 
 	int result_value = self->value - B->value;
-	void *result = new(Int(), result_value);
+	struct IntType *result = new(Int(), result_value);
 
 	return result;
 }
@@ -178,7 +178,7 @@ static void* IntType_product(const void *_self, const void *b)
 	const struct IntType *B = cast(Int(), b);
 
 	int result_value = self->value * B->value;
-	void *result = new(Int(), result_value);
+	struct IntType *result = new(Int(), result_value);
 
 	return result;
 }
@@ -189,7 +189,7 @@ static void* IntType_divide(const void *_self, const void *b)
 	const struct IntType *B = cast(Int(), b);
 
 	int result_value = self->value / B->value;
-	void *result = new(Int(), result_value);
+	struct IntType *result = new(Int(), result_value);
 
 	return result;
 }

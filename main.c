@@ -54,34 +54,28 @@ int main(int argc, char *argv[])
 
 	srand(time(0));
 
-	int i1 = rand();
-	//int i2 = 10;
+	int i1 = 478912;
+	int i2 = 10;
 
 	smart struct Bitset *bits1 = new(Bitset(), 32);
-	//smart struct Bitset *bits2 = new(Bitset(), 32);
+	smart struct Bitset *bits2 = new(Bitset(), 32);
 
 	for (int i = 0; i < 32; ++i)
 	{
 		int bit1 = (i1 & (1 << i)) ? 1 : 0;
 		set(bits1, i, bit1);
 
-		//int bit2 = (i2 & (1 << i)) ? 1 : 0;
-		//set(bits2, i, bit2);
+		int bit2 = (i2 & (1 << i)) ? 1 : 0;
+		set(bits2, i, bit2);
 	}
 
-	printf("%lu\n", bits1->length);
+	smart struct Bitset *bits3 = divide(bits1, bits2);
+	smart struct Bitset *bits4 = modulo(bits1, bits2);
 
 	oprintln(bits1);
-	lshift(bits1, 28);
-
-	printf("%lu\n", bits1->length);
-
-	oprintln(bits1);
-	rshift(bits1, 28);
-
-	printf("%lu\n", bits1->length);
-
-	oprintln(bits1);
+	oprintln(bits2);
+	oprintln(bits3);
+	oprintln(bits4);
 
 	return 0;
 }
