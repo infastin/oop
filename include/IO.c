@@ -6,9 +6,9 @@
 #include <stdlib.h>
 
 #include "IO.h"
+#include "Ints/IntTypes.h"
 #include "Exception.h"
 #include "Matrix.h"
-#include "IntType.h"
 #include "FloatType.h"
 #include "Selectors.h"
 #include "Utils.h"
@@ -36,7 +36,8 @@ char* __varg_string(int n)
 
 // ---
 
-int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *func, va_list *ap)
+int _ovfprintf(char *file, int line, const char *func, 
+		FILE *stream, const char *fmt, va_list *ap)
 {
 	const char *p;
 
@@ -236,21 +237,23 @@ int _ovfprintf(FILE *stream, const char *fmt, char *file, int line, const char *
 	return result;
 }
 
-int _ofprintf(FILE *stream, const char *fmt, char *file, int line, const char *func, ...)
+int _ofprintf(char *file, int line, const char *func, 
+		FILE *stream, const char *fmt, ...)
 {
 	va_list ap;
-	va_start(ap, func);
-	int result = _ovfprintf(stream, fmt, file, line, func, &ap);
+	va_start(ap, fmt);
+	int result = _ovfprintf(file, line, func, stream, fmt, &ap);
 	va_end(ap);
 
 	return result;
 }
 
-int _oprintf(const char *fmt, char *file, int line, const char *func, ...)
+int _oprintf(char *file, int line, const char *func, 
+		const char *fmt, ...)
 {
 	va_list ap;
-	va_start(ap, func);
-	int result = _ovfprintf(stdout, fmt, file, line, func, &ap);
+	va_start(ap, fmt);
+	int result = _ovfprintf(file, line, func, stdout, fmt, &ap);
 	va_end(ap);
 
 	return result;
@@ -294,7 +297,8 @@ int owrite(const void *self)
 
 // ---
 
-int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *func, va_list *ap)
+int _ovfscanf(char *file, int line, const char *func, 
+		FILE* stream, const char *fmt, va_list *ap)
 {
 	const char *p;
 
@@ -432,21 +436,23 @@ int _ovfscanf(FILE* stream, const char *fmt, char *file, int line, const char *f
 	return result;
 }
 
-int _ofscanf(FILE *stream, const char *fmt, char *file, int line, const char *func, ...)
+int _ofscanf(char *file, int line, const char *func, 
+		FILE *stream, const char *fmt,  ...)
 {
 	va_list ap;
-	va_start(ap, func);
-	int result = _ovfscanf(stream, fmt, file, line, func, &ap);
+	va_start(ap, fmt);
+	int result = _ovfscanf(file, line, func, stream, fmt, &ap);
 	va_end(ap);
 
 	return result;
 }
 
-int _oscanf(const char *fmt, char *file, int line, const char *func, ...)
+int _oscanf(char *file, int line, const char *func, 
+		const char *fmt, ...)
 {
 	va_list ap;
-	va_start(ap, func);
-	int result = _ovfscanf(stdin, fmt, file, line, func, &ap);
+	va_start(ap, fmt);
+	int result = _ovfscanf(file, line, func, stdin, fmt, &ap);
 	va_end(ap);
 
 	return result;
@@ -458,7 +464,8 @@ int _oscanf(const char *fmt, char *file, int line, const char *func, ...)
 
 // ---
 
-int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const char *func, va_list *ap)
+int _ovsscanf(char *file, int line, const char *func, 
+		const char *buffer, const char *fmt, va_list *ap)
 {
 	const char *p, *s;
 
@@ -600,11 +607,11 @@ int _ovsscanf(const char *buffer, const char *fmt, char *file, int line, const c
 	return result;
 }
 
-int _osscanf(const char *buffer, const char *fmt, char *file, int line, const char *func, ...)
+int _osscanf(char *file, int line, const char *func, const char *buffer, const char *fmt, ...)
 {
 	va_list ap;
-	va_start(ap, func);
-	int result = _ovsscanf(buffer, fmt, file, line, func, &ap);
+	va_start(ap, fmt);
+	int result = _ovsscanf(file, line, func, buffer, fmt, &ap);
 	va_end(ap);
 
 	return result;

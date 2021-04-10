@@ -39,10 +39,16 @@ const void *exception_catch(void *self, ...);
 
 #define try { jmp_buf __env; exception_try(GlobalException(), &__env); if (!setjmp(__env))
 
-#define catch(e, ...) else { exception_try_fail(GlobalException()); } exception_try_end(GlobalException()); } \
+
+#define catch0(e, ...) else { exception_try_fail(GlobalException()); } exception_try_end(GlobalException()); } \
 	for (const void* e = exception_catch(GlobalException(), __VA_ARGS__); e != NULL; e = NULL)
 
-#define throw(object, fmt, ...) exception_throw(GlobalException(), object, \
+#define catch(e, ...) CATS(catch0, (e, ## __VA_ARGS__))
+
+
+#define throw0(object, fmt, ...) exception_throw(GlobalException(), object, \
 		__FILE__, __LINE__, __FUNCTION__, fmt,  ## __VA_ARGS__)
+
+#define throw(object, fmt, ...) CATS(throw0, (object, fmt, ## __VA_ARGS__))
 
 #endif /* end of include guard: EXCEPTION_H_6E2ZCQYD */

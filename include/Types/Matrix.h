@@ -37,6 +37,9 @@ struct Matrix
 	unsigned int rows;
 	unsigned int columns;
 	void ***mass;
+
+	int changed;
+	void* determinant;
 };
 
 /**

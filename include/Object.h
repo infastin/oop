@@ -7,21 +7,7 @@
 #include <stdio.h>
 
 #include "Interface.h"
-
-/*
- * Class and object macro
- */
-
-#define ClassHeader(T) extern const void* const T (void)
-#define ObjectHeader(T) extern void* const T (void)
-
-#define ClassImpl(T)  					\
-	static const void *_ ## T; 			\
-	const void* const T(void)
-
-#define ObjectImpl(T)  					\
-	static void *_ ## T; 				\
-	void* const T(void)
+#include "Macro.h"
 
 /*
  * Object and Class

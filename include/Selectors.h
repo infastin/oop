@@ -21,37 +21,35 @@ typedef void* var;
 /**
  * @brief new wraps this function to provide better logging and debuging
  */
-void* _new(const void *class, 
-		char *classname, char *file, int line, const char *func, ...);
+void* _new(char *classname, char *file, int line, const char *func, 
+		const void *class, ...);
 
 
 /**
  * @brief Same as _new
  */
-void* _vnew(const void *class, 
-		char *classname, char *file, int line, const char *func, va_list *ap);
+void* _vnew(char *classname, char *file, int line, const char *func, 
+		const void *class, va_list *ap);
 
 
 /**
  * @brief delete wraps this function to provide better logging and debuging
  */
-void _delete(void *self, 
-		char *selfname, char *file, int line, const char *func);
+void _delete(char *selfname, char *file, int line, const char *func,
+		void *self);
 
 
 /**
  * @brief copy wraps this function to provide better logging and debuging
  */
-void* _copy(const void *self, 
-		char *selfname, char *file, int line, const char *func);
+void* _copy(char *selfname, char *file, int line, const char *func,
+		const void *self);
 
-void* _implement(void *_self, unsigned int impl_number,
-		char *selfname, char *file, int line, const char *func,
-		...);
+void* _implement(char *selfname, char *file, int line, const char *func,
+		void *_self, unsigned int impl_number, ...);
 
-const void *_inew(char *name, unsigned int ext_number, 
-		char *file, int line, const char *func, 
-		...);
+const void *_inew(char *file, int line, const char *func,
+		char *name, unsigned int ext_number, ...);
 
 /**
  * @brief Calls method ctor of object's class
@@ -160,7 +158,6 @@ void vset(void *self, va_list *ap);
  */
 void vget(const void *self, va_list *ap);
 
-
 /**
  * @brief Create new object
  *
@@ -169,13 +166,12 @@ void vget(const void *self, va_list *ap);
  *
  * @return Object
  */
-#define new(class, ...) _new(class, #class, __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
-
+#define new(class...) _new(#class, __FILE__, __LINE__, __FUNCTION__, class)
 
 /**
  * @brief Same as new
  */
-#define vnew(class, ap) _vnew(class, #class, __FILE__, __LINE__, __FUNCTION__, ap)
+#define vnew(class, ap) _vnew(#class, __FILE__, __LINE__, __FUNCTION__, class, ap)
 
 
 /**
@@ -185,7 +181,7 @@ void vget(const void *self, va_list *ap);
  *
  * @return Object
  */
-#define copy(self) _copy(self, #self, __FILE__, __LINE__, __FUNCTION__)
+#define copy(self) _copy(#self, __FILE__, __LINE__, __FUNCTION__, self)
 
 
 /**
@@ -193,10 +189,9 @@ void vget(const void *self, va_list *ap);
  *
  * @param self Object
  */
-#define delete(self) _delete(self, #self, __FILE__, __LINE__, __FUNCTION__)
+#define delete(self) _delete(#self, __FILE__, __LINE__, __FUNCTION__, self)
 
-#define implement(self, impl_number, ...) _implement(self, impl_number, #self, __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
-
-#define inew(name, ext_number, ...) _inew(name, ext_number, __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+#define implement(self, impl_number...) _implement(#self, __FILE__, __LINE__, __FUNCTION__, self, impl_number)
+#define inew(name, ext_number...) _inew(__FILE__, __LINE__, __FUNCTION__, name, ext_number)
 
 #endif /* end of include guard: NEW_H_0FEJN6R1 */

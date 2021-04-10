@@ -96,9 +96,8 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 
 // ---
 
-void* _new(const void *_class, 
-		char *classname, char *file, int line, const char *func, 
-		...)
+void* _new(char *classname, char *file, int line, const char *func, 
+		const void *_class, ...)
 {
 	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
 	struct Object *object;
@@ -125,7 +124,7 @@ void* _new(const void *_class,
 
 	va_list ap;
 
-	va_start(ap, func);
+	va_start(ap, _class);
 	object = ctor(object, &ap);
 	va_end(ap);
 
@@ -135,9 +134,8 @@ void* _new(const void *_class,
 	return object;
 }
 
-void* _vnew(const void *_class, 
-		char *classname, char *file, int line, const char* func, 
-		va_list *ap)
+void* _vnew(char *classname, char *file, int line, const char* func, 
+		const void *_class, va_list *ap)
 {
 	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
 	struct Object *object;
@@ -171,8 +169,8 @@ void* _vnew(const void *_class,
 	return object;
 }
 
-void _delete(void *_self, 
-		char *selfname, char *file, int line, const char *func)
+void _delete(char *selfname, char *file, int line, const char *func,
+		void *_self)
 {
 	if (_self) {
 		const struct Class *class = _classOf(_self, selfname, file, line, func);
@@ -190,8 +188,8 @@ void _delete(void *_self,
 }
 
 
-void* _copy(const void *_self, 
-		char *selfname, char *file, int line, const char *func)
+void* _copy(char *selfname, char *file, int line, const char *func,
+		const void *_self)
 {
 	const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
 	const struct Class *class = self->class;
@@ -229,9 +227,8 @@ void* _copy(const void *_self,
 	return res;
 }
 
-void* _implement(void *_self, unsigned int impl_number,
-		char *selfname, char *file, int line, const char *func,
-		...)
+void* _implement(char *selfname, char *file, int line, const char *func,
+		void *_self, unsigned int impl_number, ...)
 {
 	struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
 
@@ -248,7 +245,7 @@ void* _implement(void *_self, unsigned int impl_number,
 		}
 
 		va_list ap;
-		va_start(ap, func);
+		va_start(ap, impl_number);
 
 		for (unsigned int i = 0; i < impl_number; ++i)
 		{
@@ -268,9 +265,8 @@ void* _implement(void *_self, unsigned int impl_number,
 /*
  * Create interface
  */
-const void *_inew(char *name, unsigned int ext_number, 
-		char *file, int line, const char *func, 
-		...)
+const void *_inew(char *file, int line, const char *func, 
+		char *name, unsigned int ext_number, ...)
 {
 	struct Interface *interface = (struct Interface*)calloc(1, sizeof(struct Interface));
 
@@ -298,7 +294,7 @@ const void *_inew(char *name, unsigned int ext_number,
 		}
 
 		va_list ap;
-		va_start(ap, func);
+		va_start(ap, ext_number);
 
 		for (unsigned int i = 0; i < ext_number; ++i)
 		{

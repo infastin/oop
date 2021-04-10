@@ -24,12 +24,14 @@ endif()
 
 set(INCLUDE_FOLDER include)
 set(TYPES_FOLDER ${INCLUDE_FOLDER}/Types)
+set(INTTYPES_FOLDER ${TYPES_FOLDER}/Ints)
 set(INTERFACES_FOLDER ${INCLUDE_FOLDER}/Interfaces)
 set(LEAKCHECK_FOLDER ${INCLUDE_FOLDER}/Leakcheck)
 
 set(DIRS 
 	${INCLUDE_FOLDER} 
-	${TYPES_FOLDER} 
+	${TYPES_FOLDER}
+	${INTTYPES_FOLDER}
 	${LEAKCHECK_FOLDER}
 	${INTERFACES_FOLDER})
 
@@ -55,7 +57,7 @@ add_library(leakcheck STATIC
 	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
 
 add_library(types STATIC
-			${TYPES_FOLDER}/IntType.c
+			${TYPES_FOLDER}/Ints/IntTypes.c
 			${TYPES_FOLDER}/FloatType.c
 			${TYPES_FOLDER}/Matrix.c
 			${TYPES_FOLDER}/Bitset.c)

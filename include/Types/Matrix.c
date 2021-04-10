@@ -9,7 +9,6 @@
 #include "Matrix.h"
 #include "ReferenceCounter.h"
 #include "Selectors.h"
-#include "IntType.h"
 #include "TypeClass.h"
 #include "Utils.h"
 
@@ -109,6 +108,9 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 	columns = va_arg(ap_copy, unsigned int);
 	self->mass = NULL;
 
+	self->determinant = NULL;
+	self->changed = 0;
+
 	if (rows == 0 || columns == 0) {
 		delete(self);
 		throw(MatrixException(), "Error: Can't create matrix with zero rows or columns! (%u, %u)",
@@ -152,6 +154,9 @@ static void* Matrix_cpy(const void *_self, void *_object)
 	object->rows = self->rows;
 	object->columns = self->columns;
 	object->type =self->type;
+
+	object->determinant = copy(self->determinant);
+	object->changed = self->changed;
 
 	void ***mass;
 
@@ -203,6 +208,8 @@ static void Matrix_set(void *_self, va_list *ap)
 		self->mass[row][column] = vnew(self->type, ap);
 	else
 		vset(self->mass[row][column], ap);
+
+	self->changed = 1;
 }
 
 static void Matrix_get(void *_self, va_list *ap)
@@ -361,7 +368,7 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
 		int asterisk, int width)
 {
-	const struct Matrix *self = cast(Matrix(), _self);
+	struct Matrix *self = cast(Matrix(), _self);
 
 	int numb_res = 0;
 	int result = 0;
@@ -481,6 +488,8 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 
 	if (numb != NULL)
 		*numb = numb_res;
+
+	self->changed = 1;
 
 	return result;
 }
@@ -614,6 +623,8 @@ static void Matrix_scmulti(void *_self, va_list *ap)
 			vscmulti(self->mass[i][j], &ap_copy_copy);
 		}
 	}
+
+	self->changed = 1;
 }
 
 static void Matrix_scdivide(void *_self, va_list *ap)
@@ -637,6 +648,8 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 			vscdivide(self->mass[i][j], &ap_copy_copy);
 		}
 	}
+
+	self->changed = 1;
 }
 
 static void* Matrix_minorOf(const void *_self, unsigned int row, unsigned int column)
@@ -679,71 +692,117 @@ static void Matrix_matrix_size(const void *_self, unsigned int *rows, unsigned i
 	*columns = self->columns;
 }
 
-static void Matrix_determinant(const void *_self, void **retval)
+static void Matrix_determinant(void *_self, void **retval)
 {
-	const struct Matrix *self = cast(Matrix(), _self);
+	struct Matrix *self = cast(Matrix(), _self);
 
-	if (self->rows != self->columns)
-		throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
-				self->rows, self->columns);
-
-	var result = NULL;
-
-	if (self->rows == 1 && self->columns == 1)
+	if (self->changed == 1 || self->determinant == NULL)
 	{
-		result = copy(self->mass[0][0]);
-	}
-	else if (self->rows == 2 && self->columns == 2)
-	{
-		smart var prod1 = product(self->mass[0][0], self->mass[1][1]);
-		smart var prod2 = product(self->mass[0][1], self->mass[1][0]);
-		smart var sub = subtract(prod1, prod2);
+		if (self->rows != self->columns)
+			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
+					self->rows, self->columns);
 
-		result = retain(sub);
-	}
-	else
-	{
-		for (unsigned int j = 0; j < self->columns; j++)
+		var result = NULL;
+
+		if (self->rows == 1 && self->columns == 1)
 		{
-			var res;
-			smart var minor = minorOf(_self, 0, j);
-			determinant(minor, &res);
+			result = copy(self->mass[0][0]);
+		}
+		else if (self->rows == 2 && self->columns == 2)
+		{
+			smart var prod1 = product(self->mass[0][0], self->mass[1][1]);
+			smart var prod2 = product(self->mass[0][1], self->mass[1][0]);
+			smart var sub = subtract(prod1, prod2);
 
-			if (j % 2 == 0)
+			result = retain(sub);
+		}
+		else
+		{
+			for (unsigned int j = 0; j < self->columns; j++)
 			{
-				smart var prod = product(self->mass[0][j], res);
+				var res;
+				smart var minor = Matrix_minorOf(_self, 0, j);
+				Matrix_determinant(minor, &res);
 
-				if (result)
+				if (j % 2 == 0)
 				{
-					smart var summ = sum(result, prod);
-					delete(result);
-					result = retain(summ);
+					smart var prod = product(self->mass[0][j], res);
+
+					if (result)
+					{
+						smart var summ = sum(result, prod);
+						delete(result);
+						result = retain(summ);
+					}
+					else
+					{
+						result = retain(prod);
+					}
 				}
 				else
 				{
-					result = retain(prod);
+					smart var tmp = inverse_add(self->mass[0][j]);
+					smart var prod = product(tmp, res);
+
+					if (result)
+					{
+						smart var summ = sum(result, prod);
+						delete(result);
+						result = retain(summ);
+					}
+					else
+					{
+						result = retain(prod);
+					}			
 				}
-			}
-			else
-			{
-				smart var tmp = inverse_add(self->mass[0][j]);
-				smart var prod = product(tmp, res);
-				
-				if (result)
-				{
-					smart var summ = sum(result, prod);
-					delete(result);
-					result = retain(summ);
-				}
-				else
-				{
-					result = retain(prod);
-				}			
 			}
 		}
-	}
 
-	*retval = result;
+		self->changed = 0;
+		self->determinant = result;
+
+		*retval = result;
+	}
+	else
+		*retval = self->determinant;
+}
+
+static void Matrix_fast_determinant(void *_self, void **retval)
+{
+	struct Matrix *self = cast(Matrix(), _self);
+
+	if (self->changed == 1 || self->determinant == NULL)
+	{
+		if (self->rows != self->columns)
+			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
+					self->rows, self->columns);
+
+		var result = NULL;
+
+		if (self->rows == 1 && self->columns == 1)
+		{
+			result = copy(self->mass[0][0]);
+		}
+		else if (self->rows == 2 && self->columns == 2)
+		{
+			smart var prod1 = product(self->mass[0][0], self->mass[1][1]);
+			smart var prod2 = product(self->mass[0][1], self->mass[1][0]);
+			smart var sub = subtract(prod1, prod2);
+
+			result = retain(sub);
+		}
+		else
+		{
+			
+		}
+
+		self->changed = 0;
+		self->determinant = result;
+
+		*retval = result;
+	}
+	else
+		*retval = self->determinant;
 }
 
 static void* Matrix_rnd(void *_self, va_list *ap)
@@ -771,6 +830,8 @@ static void* Matrix_rnd(void *_self, va_list *ap)
 			va_end(ap_copy);
 		}
 	}
+
+	self->changed = 1;
 
 	return self;
 }

@@ -2,7 +2,7 @@
 #define INTERFACE_H_DBQUJ2HM
 
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdlib.h>
 
 /*
  * Interface macro

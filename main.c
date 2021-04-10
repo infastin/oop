@@ -10,7 +10,11 @@
 
 int main(int argc, char *argv[])
 {
-	/*smart var matrix1 = new(Matrix(), Float(), 2, 2);
+	smart struct Int *i = new(Int(), 10);
+
+	printf("%lu", sizeof(i->value));
+
+	/*smart var matrix1 = new(Matrix(), Float(), 30, 30);
 
 	srand(time(0));	
 
@@ -22,9 +26,9 @@ int main(int argc, char *argv[])
 		smart var det;
 		determinant(matrix1, &det);
 		oprintf("%f\n", det);
-	}
+	}/*
 
-	FILE *T;
+	/*FILE *T;
 
 	T = fopen("test.bin", "wb+");
 
@@ -50,9 +54,9 @@ int main(int argc, char *argv[])
 
 	oprintf("%4.2m\n", matrix2);
 
-	fclose(T); */
+	fclose(T);*/
 
-	srand(time(0));
+	/*srand(time(0));
 
 	int i1 = 478912;
 	int i2 = 10;
@@ -75,7 +79,7 @@ int main(int argc, char *argv[])
 	oprintln(bits1);
 	oprintln(bits2);
 	oprintln(bits3);
-	oprintln(bits4);
+	oprintln(bits4);*/
 
 	return 0;
 }
