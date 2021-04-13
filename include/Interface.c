@@ -79,7 +79,7 @@ static void sigcatch(int signal)
 		fprintf(stderr, "icast: Error: Caught Bus Error, exiting!");
 		exit(EXIT_FAILURE);
 	}
-
+	
 	if (signal == SIGSEGV)
 	{
 		fprintf(stderr, "icast: Error: Caught Segmentation Fault, exiting!");
@@ -91,9 +91,9 @@ void* _icast(const void *_interface, const void *_self,
 		char *iname, char *selfname, char *file, int line, const char *func)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
-#ifdef SIGBUS
-	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
-#endif
+	#ifdef SIGBUS
+		void (*sigbus)(int) = signal(SIGBUS, sigcatch);
+	#endif
 
 	const struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
 	const struct Interface *interface = _isInterface(_interface, iname, file, line, func);
@@ -134,10 +134,10 @@ void* _icast(const void *_interface, const void *_self,
 		exit(EXIT_FAILURE);
 	}
 
-#ifdef SIGBUS
-	signal(SIGBUS, sigbus);
-#endif
-	signal(SIGSEGV, sigsegv);
+	#ifdef SIGBUS
+		signal(SIGBUS, sigbus);
+	#endif
+		signal(SIGSEGV, sigsegv);
 
 	return (void*) (((char*) self) + offset);
 }

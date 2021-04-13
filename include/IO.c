@@ -6,10 +6,10 @@
 #include <stdlib.h>
 
 #include "IO.h"
-#include "Ints/IntTypes.h"
+#include "IntTypes.h"
 #include "Exception.h"
 #include "Matrix.h"
-#include "FloatType.h"
+#include "FloatTypes.h"
 #include "Selectors.h"
 #include "Utils.h"
 

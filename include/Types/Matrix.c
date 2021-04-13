@@ -205,7 +205,12 @@ static void Matrix_set(void *_self, va_list *ap)
 				row, column);
 
 	if (self->mass[row][column] == NULL)
-		self->mass[row][column] = vnew(self->type, ap);
+	{
+		char tmp[sizeOf(self->type)];
+		void *stack = (void*) &tmp[0];
+
+		self->mass[row][column] = vnew_stack(self->type, stack, ap);
+	}
 	else
 		vset(self->mass[row][column], ap);
 
@@ -236,14 +241,6 @@ static void* Matrix_dtor(void *_self)
 
 	if (self->mass != NULL)
 	{
-		for (unsigned int i = 0; i < self->rows; i++)
-		{
-			for (unsigned int j = 0; j < self->columns; j++)
-			{
-				delete(self->mass[i][j]);
-			}
-		}
-
 		free(self->mass[0]);
 		free(self->mass);
 	}
@@ -760,11 +757,9 @@ static void Matrix_determinant(void *_self, void **retval)
 
 		self->changed = 0;
 		self->determinant = result;
-
-		*retval = result;
 	}
-	else
-		*retval = self->determinant;
+	
+	*retval = copy(self->determinant);
 }
 
 static void Matrix_fast_determinant(void *_self, void **retval)

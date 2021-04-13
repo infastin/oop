@@ -25,7 +25,7 @@
 
 #define T unsigned
 #define N UInt
-
+#include "Template/IntTemplate.c"
 
 /*
  * Signed and unsigned shorts

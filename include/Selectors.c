@@ -134,6 +134,44 @@ void* _new(char *classname, char *file, int line, const char *func,
 	return object;
 }
 
+void* _new_stack(char *classname, char *file, int line, const char *func,
+		const void *_class, void *_object, ...)
+{
+	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	struct Object *object;
+
+	if (_object == NULL)
+	{
+		selerror("Fatal Error: Object of class '%s' allocation error!", 
+				file, line, func, "stack", class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	object = _object;
+
+	if (class->size == 0)
+	{
+		selerror("Error: Object of class '%s' can't have zero size!", 
+				file, line, func, "stack", class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	object->magic = MAGIC_NUM;
+	object->class = class;
+	atomic_init((atomic_uint*) &object->ref_count, 1);
+
+	va_list ap;
+
+	va_start(ap, _object);
+	object = ctor(object, &ap);
+	va_end(ap);
+
+	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
+			file, line, func, "stack", class->name, class->size);
+
+	return object;
+}
+
 void* _vnew(char *classname, char *file, int line, const char* func, 
 		const void *_class, va_list *ap)
 {
@@ -168,6 +206,41 @@ void* _vnew(char *classname, char *file, int line, const char* func,
 
 	return object;
 }
+
+void* _vnew_stack(char *classname, char *file, int line, const char *func,
+		const void *_class, void *_object, va_list *ap)
+{
+	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	struct Object *object;
+
+	if (_object == NULL)
+	{
+		selerror("Fatal Error: Object of class '%s' allocation error!", 
+				file, line, func, "stack", class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	object = _object;
+
+	if (class->size == 0)
+	{
+		selerror("Error: Object of class '%s' can't have zero size!", 
+				file, line, func, "stack", class->name);
+		exit(EXIT_FAILURE);
+	}
+
+	object->magic = MAGIC_NUM;
+	object->class = class;
+	atomic_init((atomic_uint*) &object->ref_count, 1);
+
+	object = ctor(object, ap);
+
+	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
+			file, line, func, "stack", class->name, class->size);
+
+	return object;
+}
+
 
 void _delete(char *selfname, char *file, int line, const char *func,
 		void *_self)

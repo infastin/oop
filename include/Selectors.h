@@ -16,6 +16,10 @@
  * @date 2021-03-23
  */
 
+
+/**
+ * @brief Syntax sugar
+ */
 typedef void* var;
 
 /**
@@ -23,6 +27,20 @@ typedef void* var;
  */
 void* _new(char *classname, char *file, int line, const char *func, 
 		const void *class, ...);
+
+
+/**
+ * @brief new_stack wraps this function to provide better logging and debuging
+ */
+void* _new_stack(char *classname, char *file, int line, const char *func,
+		const void *_class, void *_object, ...);
+
+
+/**
+ * @brief Same as _new_stack
+ */
+void* _vnew_stack(char *classname, char *file, int line, const char *func,
+		const void *_class, void *_object, va_list *ap);
 
 
 /**
@@ -45,11 +63,19 @@ void _delete(char *selfname, char *file, int line, const char *func,
 void* _copy(char *selfname, char *file, int line, const char *func,
 		const void *self);
 
+/**
+ * @brief implement wraps this function to provide better logging and debuging
+ */
 void* _implement(char *selfname, char *file, int line, const char *func,
 		void *_self, unsigned int impl_number, ...);
 
+
+/**
+ * @brief inew wraps this function to provide better logging and debuging
+ */
 const void *_inew(char *file, int line, const char *func,
 		char *name, unsigned int ext_number, ...);
+
 
 /**
  * @brief Calls method ctor of object's class
@@ -129,11 +155,12 @@ void* super_dtor(const void *class, void *self);
  */
 void* super_cpy(const void *class, const void *self, void *object);
 
+
 /**
  * @brief Set object value/parameters
  *
  * @param self Object
- * @param ...  List of arguments
+ * @param ...  Values to set
  */
 void set(void *self, ...);
 
@@ -142,7 +169,7 @@ void set(void *self, ...);
  * @brief Get object value/parameters
  *
  * @param self Object
- * @param ...  List of arguments
+ * @param ...  Pointers to the variables, where will be values
  */
 void get(const void *self, ...);
 
@@ -158,6 +185,7 @@ void vset(void *self, va_list *ap);
  */
 void vget(const void *self, va_list *ap);
 
+
 /**
  * @brief Create new object
  *
@@ -167,6 +195,64 @@ void vget(const void *self, va_list *ap);
  * @return Object
  */
 #define new(class...) _new(#class, __FILE__, __LINE__, __FUNCTION__, class)
+
+
+/**
+ * @brief Create new object in stack
+ *
+ * @param class  Class
+ * @param object Allocated memory in stack
+ * @param ...    List of arguments
+ *
+ * @return Object
+ */
+#define new_stack(class, object...) _new_stack(#class, __FILE__, __LINE__, __FUNCTION__, class, object)
+
+
+/**
+ * @brief Create new object in stack
+ * This is the helper function for new_stack
+ * So you don't need to allocate memory in stack by hand
+ *
+ * @param class Class
+ * @param ...   List of arguments
+ *
+ * @return Object
+ */
+#define $(class, ...) new_stack(class(), (char[sizeof(struct class)]){0}, ## __VA_ARGS__)
+
+
+/**
+ * @brief Same as new_stack
+ */
+#define vnew_stack(class, object, ap) _vnew_stack(#class, __FILE__, __LINE__, __FUNCTION__, class, object, ap)
+
+
+/**
+ * @brief Same as $(class, ...)
+ */
+#define $v(class, ap) new_stack(class(), (char[sizeof(struct class)]){0}, ap)
+
+
+/**
+ * @brief Create a simple object from any variable
+ *
+ * @param var Any variable (can't be rvalue)
+ * 
+ * @return Object
+ */
+#define any(var) new(Any(), sizeof(typeof(var)), var)
+
+
+/**
+ * @brief Create a simple object from any variable in stack
+ *
+ * @param var Any variable (can't be rvalue)
+ * 
+ * @return Object
+ */
+#define $A(var) $(Any, sizeof(typeof(var)), var)
+
 
 /**
  * @brief Same as new
@@ -191,7 +277,28 @@ void vget(const void *self, va_list *ap);
  */
 #define delete(self) _delete(#self, __FILE__, __LINE__, __FUNCTION__, self)
 
+
+/**
+ * @brief Set class' interfaces
+ *
+ * @param self 		  Class
+ * @param impl_number Number of interfaces
+ * @param ... 		  Pairs of interfaces and their offsets in the class structure
+ *
+ * @return Class
+ */
 #define implement(self, impl_number...) _implement(#self, __FILE__, __LINE__, __FUNCTION__, self, impl_number)
+
+
+/**
+ * @brief Set class' interfaces
+ *
+ * @param self 		  Class
+ * @param impl_number Number of interfaces
+ * @param ... 		  Pairs of interfaces and their sizes
+ *
+ * @return Class
+ */
 #define inew(name, ext_number...) _inew(__FILE__, __LINE__, __FUNCTION__, name, ext_number)
 
 #endif /* end of include guard: NEW_H_0FEJN6R1 */

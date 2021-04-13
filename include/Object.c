@@ -61,7 +61,7 @@ static void sigcatch(int signal)
 		fprintf(stderr, "cast: Error: Caught Bus Error, exiting!");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if (signal == SIGSEGV)
 	{
 		fprintf(stderr, "cast: Error: Caught Segmentation Fault, exiting!");
@@ -83,7 +83,7 @@ void* _cast(const void *_class, const void *_self,
 	char *selfclass_name = (char*)calloc(sizeof(char), selfclass_len + 1);
 	snprintf(selfclass_name, selfclass_len + 1, "%s's class", selfname);
 
-	const struct Class  *myClass = _isObject(self->class, selfname, file, line, func);
+	const struct Class *myClass = _isObject(self->class, selfclass_name, file, line, func);
 
 	free(selfclass_name);
 

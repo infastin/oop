@@ -25,6 +25,7 @@ endif()
 set(INCLUDE_FOLDER include)
 set(TYPES_FOLDER ${INCLUDE_FOLDER}/Types)
 set(INTTYPES_FOLDER ${TYPES_FOLDER}/Ints)
+set(FLOATTYPES_FOLDER ${TYPES_FOLDER}/Floats)
 set(INTERFACES_FOLDER ${INCLUDE_FOLDER}/Interfaces)
 set(LEAKCHECK_FOLDER ${INCLUDE_FOLDER}/Leakcheck)
 
@@ -32,6 +33,7 @@ set(DIRS
 	${INCLUDE_FOLDER} 
 	${TYPES_FOLDER}
 	${INTTYPES_FOLDER}
+	${FLOATTYPES_FOLDER}
 	${LEAKCHECK_FOLDER}
 	${INTERFACES_FOLDER})
 
@@ -44,6 +46,7 @@ add_library(base STATIC
 			${INCLUDE_FOLDER}/Exception.c
 			${INCLUDE_FOLDER}/ExceptionObject.c
 			${INCLUDE_FOLDER}/IO.c
+			${INCLUDE_FOLDER}/Any.c
 			${INCLUDE_FOLDER}/Utils.c)
 target_link_libraries(base types interfaces)
 
@@ -58,7 +61,7 @@ add_library(leakcheck STATIC
 
 add_library(types STATIC
 			${TYPES_FOLDER}/Ints/IntTypes.c
-			${TYPES_FOLDER}/FloatType.c
+			${TYPES_FOLDER}/Floats/FloatTypes.c
 			${TYPES_FOLDER}/Matrix.c
 			${TYPES_FOLDER}/Bitset.c)
 target_link_libraries(types base interfaces)

@@ -3,30 +3,40 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
+#include <unistd.h>
+#include <string.h>
 
-#include "Bitset.h"
-#include "IO.h"
 #include "Init.h"
+
+struct Test
+{
+	int first;
+	char second[4];
+};
 
 int main(int argc, char *argv[])
 {
-	smart struct Int *i = new(Int(), 10);
+	/*smart struct LDouble *i = new(LDouble(), 10);
 
-	printf("%lu", sizeof(i->value));
+	printf("%lu", sizeof(i->value)); */
 
-	/*smart var matrix1 = new(Matrix(), Float(), 30, 30);
+	smart var matrix1 = new(Matrix(), Float(), 3, 3);
 
 	srand(time(0));	
 
 	rnd(Matrix(), matrix1, 100);
 
-	oprintf("%4.2m\n", matrix1);
+	oprintf("%5.2m\n", matrix1);
 
 	{
 		smart var det;
 		determinant(matrix1, &det);
 		oprintf("%f\n", det);
-	}/*
+	}
+
+	var det;
+	determinant(matrix1, &det);
+	oprintln(det);
 
 	/*FILE *T;
 
@@ -80,6 +90,30 @@ int main(int argc, char *argv[])
 	oprintln(bits2);
 	oprintln(bits3);
 	oprintln(bits4);*/
+
+	/*int rnd = rand() % 100;
+	struct Int *object = $(Int, rnd);
+
+	set(object, 10);
+
+	oprintln(object); */
+
+	struct Test testing = {
+		10, "Hel"
+	};
+
+	void *null = &testing;
+
+	struct Any *nil = any(null);
+
+	printf("%lu\n", nil->size);
+
+	struct Any *test = $A(&testing);
+
+	struct Test second = {0};
+	get(test, &second);
+
+	printf("%s\n", second.second);
 
 	return 0;
 }
