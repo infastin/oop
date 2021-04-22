@@ -1,75 +1,32 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 
-#if defined(_WIN32)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
-
-#include "Exception.h"
 #include "Interface.h"
-#include "Object.h"
-#include "Utils.h"
+#include "Macro.h"
 
-const void* _isInterface(const void *_self, 
-		char *selfname, char *file, int line, const char *func)
+const void* _isInterface(char *intername, char *file, int line, const char *func,
+		const void *_interface)
 {
-	if (_self == NULL)
+	if (_interface == NULL)
 	{
-		fprintf(stderr, "%s:%d: %s: Error '%s' is NULL!",
-				file, line, func, selfname);
+		fprintf(stderr, "%s:%d: %s: Error: '%s' is NULL!",
+				file, line, func, intername);
 		exit(EXIT_FAILURE);
 	}
 
-	const struct Interface *self = _self;
+	const struct Interface *self = _interface;
 
-	if (self->magic != MAGIC_INUM)
+	if (self->magic != INTERFACE_MAGIC)
 	{
 		fprintf(stderr, "%s:%d: %s: Error: '%s' isn't an interface!",
-				file, line, func, selfname);
+				file, line, func, intername);
 		exit(EXIT_FAILURE);
 	}
 
-	return _self;
-}
-
-ssize_t _doesExtend(const void *_interface, const void *_self, 
-		char *iname, char *selfname, char *file, int line, const char *func)
-{
-	const struct Interface *self = _isInterface(_self, selfname, file, line, func);
-	const struct Interface *interface = _isInterface(_interface, iname, file, line, func);
-
-	ssize_t offset = -1;
-
-	for (unsigned int i = 0; i < self->ext_number; ++i)
-	{
-		if (self->extends[i].interface == interface)
-		{
-			offset = self->extends[i].offset;
-			break;
-		}
-
-		if (self->extends[i].interface->ext_number != 0 && self->extends[i].interface->extends != NULL)
-		{
-			int ext_iname_len = snprintf(NULL, 0, "%s's extended interface '%s'", 
-					selfname, self->extends[i].interface->name);
-			char *ext_iname = (char*)calloc(sizeof(char), ext_iname_len);
-			snprintf(ext_iname, ext_iname_len, "%s's extended interface '%s'", 
-					selfname, self->extends[i].interface->name);
-
-			ssize_t res = _doesExtend(_interface, self->extends[i].interface, ext_iname, selfname, file, line, func);
-			free(ext_iname);
-
-			if (res != -1)
-			{
-				offset = self->extends[i].offset + res;
-				break;
-			}
-		}
-	}
-
-	return offset;
+	return _interface;
 }
 
 static void sigcatch(int signal)
@@ -79,7 +36,7 @@ static void sigcatch(int signal)
 		fprintf(stderr, "icast: Error: Caught Bus Error, exiting!");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if (signal == SIGSEGV)
 	{
 		fprintf(stderr, "icast: Error: Caught Segmentation Fault, exiting!");
@@ -87,57 +44,84 @@ static void sigcatch(int signal)
 	}
 }
 
-void* _icast(const void *_interface, const void *_self, 
-		char *iname, char *selfname, char *file, int line, const char *func)
+void* _icast(char *intername, char *selfname, char *file, int line, const char *func,
+		const void *_interface, const void *_self, void *_casted)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
-	#ifdef SIGBUS
-		void (*sigbus)(int) = signal(SIGBUS, sigcatch);
-	#endif
+#ifdef SIGBUS
+	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
+#endif
 
-	const struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
-	const struct Interface *interface = _isInterface(_interface, iname, file, line, func);
-
-	ssize_t offset = -1;
-
-	for (unsigned int i = 0; i < self->impl_number; i++)
+	if (_casted == NULL)
 	{
-		if (self->implements[i].interface == interface)
-		{
-			offset = self->implements[i].offset;
-			break;
-		}
-
-		if (self->implements[i].interface->ext_number != 0 && self->implements[i].interface->extends != NULL)
-		{
-			int ext_iname_len = snprintf(NULL, 0, "%s's extended interface '%s'", 
-					iname, self->implements[i].interface->name);
-			char *ext_iname = (char*)calloc(sizeof(char), ext_iname_len);
-			snprintf(ext_iname, ext_iname_len, "%s's extended interface '%s'", 
-					iname, self->implements[i].interface->name);
-
-			ssize_t res = _doesExtend(_interface, self->implements[i].interface, iname, ext_iname, file, line, func);
-			free(ext_iname);
-
-			if (res != -1)
-			{
-				offset = self->implements[i].offset + res;
-				break;
-			}
-		}
-	}
-
-	if (offset == -1)
-	{
-		fprintf(stderr, "%s:%d: %s: Error: Class '%s' doesn't implement interface '%s'!\n", 
-				file, line, func, self->name, interface->name);
+		fprintf(stderr, "%s:%d: %s: Error: Interface '%s' structure allocation error!",
+				file, line, func, intername);
 		exit(EXIT_FAILURE);
 	}
 
-	#ifdef SIGBUS
-		signal(SIGBUS, sigbus);
-	#endif
-		signal(SIGSEGV, sigsegv);
+	const struct Interface *interface = _isInterface(intername, file, line, func, _interface);
+	const struct Object *self = _cast("Object()", selfname, file, line, func, Object(), _self);
+	const struct Class *class = self->class;
 
-	return (void*) (((char*) self) + offset);
+	if (sizeOf(class) <= (offsetof(struct Class, get)) + sizeof(method))
+	{
+		fprintf(stderr, "%s:%d: %s: Error: Class '%s' of object '%s' doesn't implement interface '%s'!",
+				file, line, func, class->name, selfname, intername);
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned int method_sels_nb = interface->method_sels_nb;
+	voidf *method_sels = (voidf*)calloc(sizeof(method), method_sels_nb);
+	
+	if (method_sels == NULL)
+	{
+		fprintf(stderr, "%s:%d: %s: Error: Method selectors of interface '%s' allocation allocation error!",
+				file, line, func, intername);
+		exit(EXIT_FAILURE);
+	}
+
+	memcpy(method_sels, interface->method_sels, interface->method_sels_nb * sizeof(voidf));
+
+	method* class_method = (method*) ((char*) class + offsetof(struct Class, get) + sizeof(method));
+	method* casted = _casted;
+	method* c = casted;
+
+	while ((void*) class_method != (void*) ((char*) class + sizeOf(class) - sizeof(method)))
+	{
+		for (int i = 0; i < method_sels_nb; ++i) 
+		{
+			if (method_sels[i] == class_method->selector)
+			{
+				c->method = class_method->method;
+				c->selector = class_method->selector;
+				c->tag = class_method->tag;
+				c++;
+
+				ARRAY_REMOVE(method_sels, method_sels_nb, i);
+
+				break;
+			}
+		}
+
+		if (method_sels_nb == 0)
+			break;
+
+		class_method++;
+	}
+
+	free(method_sels);
+
+	if (method_sels_nb != 0)
+	{
+		fprintf(stderr, "%s:%d: %s: Error: Class '%s' of object '%s' doesn't implement interface '%s'!",
+				file, line, func, class->name, selfname, intername);
+		exit(EXIT_FAILURE);
+	}
+
+#ifdef SIGBUS
+	signal(SIGBUS, sigbus);
+#endif
+	signal(SIGSEGV, sigsegv);
+
+	return (void*) casted;
 }

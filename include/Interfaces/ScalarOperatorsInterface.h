@@ -3,23 +3,18 @@
 
 #include <stdarg.h>
 
-#include "Interface.h"
+#include "Macro.h"
 #include "Object.h"
 
 InterfaceHeader(ScalarOperatorsInterface);
 ObjectHeader(ScalarOperatorsException);
 
-typedef void  (*scadd_f)(void *self, va_list *ap);
-typedef void  (*scsub_f)(void *self, va_list *ap);
-typedef void  (*scmulti_f)(void *self, va_list *ap);
-typedef void  (*scdivide_f)(void *self, va_list *ap);
-
 struct ScalarOperatorsInterface
 {
-	scadd_f scadd;
-	scsub_f scsub;
-	scmulti_f scmulti;
-	scdivide_f scdivide;
+	method scadd;
+	method scsub;
+	method scmulti;
+	method scdivide;
 };
 
 void  scadd(void *self, ...);

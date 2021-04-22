@@ -10,7 +10,6 @@
 #include "ExceptionObject.h"
 #include "IO.h"
 #include "Utils.h"
-#include "Interface.h"
 #include "Any.h"
 
 #include "Types/Ints/IntTypes.h"

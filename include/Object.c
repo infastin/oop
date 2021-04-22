@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "Macro.h"
 #include "Object.h"
 #include "Selectors.h"
 #include "ExceptionObject.h"
@@ -32,8 +33,8 @@ static void* Object_cpy(const void *_self, void *_object)
  * Object selectors
  */
 
-const void* _isObject(const void *_self, 
-		char *selfname, char *file, int line, const char *func)
+const void* _isObject(char *selfname, char *file, int line, const char *func,
+		const void *_self)
 {
 	if (_self == NULL)
 	{
@@ -69,28 +70,28 @@ static void sigcatch(int signal)
 	}
 }
 
-void* _cast(const void *_class, const void *_self, 
-		char *classname, char *selfname, char *file, int line, const char *func)
+void* _cast(char *classname, char *selfname, char *file, int line, const char *func,
+		const void *_class, const void *_self)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
 #ifdef SIGBUS
 	void (*sigbus)(int) = signal(SIGBUS, sigcatch);
 #endif
 
-	const struct Object *self = _isObject(_self, selfname, file, line, func);
+	const struct Object *self = _isObject(selfname, file, line, func, _self);
 
 	int selfclass_len = snprintf(NULL, 0, "%s's class", selfname);
 	char *selfclass_name = (char*)calloc(sizeof(char), selfclass_len + 1);
 	snprintf(selfclass_name, selfclass_len + 1, "%s's class", selfname);
 
-	const struct Class *myClass = _isObject(self->class, selfclass_name, file, line, func);
+	const struct Class *myClass = _isObject(selfclass_name, file, line, func, self->class);
 
 	free(selfclass_name);
 
 	if (_class != Object())
 	{
 		const struct Class *p = myClass;
-		const struct Class *class = _isObject(_class, classname, file, line, func);
+		const struct Class *class = _isObject(classname, file, line, func, _class);
 
 		while (p != class)
 		{
@@ -113,44 +114,44 @@ void* _cast(const void *_class, const void *_self,
 	return (void*) self;
 }
 
-const void* _classOf(const void *_self, 
-		char *selfname, char *file, int line, const char *func)
+const void* _classOf(char *selfname, char *file, int line, const char *func,
+		const void *_self)
 {
-	const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
+	const struct Object *self = _cast("Object()", selfname, file, line, func, Object(), _self);
 
 	return self->class;
 }
 
-size_t _sizeOf(const void *_self, 
-		char *selfname, char *file, int line, const char *func)
+size_t _sizeOf(char *selfname, char *file, int line, const char *func,
+		const void *_self)
 {
-	const struct Class *class = _classOf(_self, selfname, file, line, func);
+	const struct Class *class = _classOf(selfname, file, line, func, _self);
 
 	return class->size;
 }
 
-int _isA(const void *_self, const void *_class, 
-		char *selfname, char *file, int line, const char *func)
+int _isA(char *selfname, char *file, int line, const char *func,
+		const void *_self, const void *_class)
 {
 	if (_self)
 	{
-		const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
-		const struct Object *class = _cast(Object(), _class,"Object()", selfname, file, line, func);
+		const struct Object *self = _cast("Object()", selfname, file, line, func, Object(), _self);
+		const struct Object *class = _cast("Object()", selfname, file, line, func, Object(), _class);
 
-		return _classOf(self, selfname, file, line, func) == class;
+		return _classOf(selfname, file, line, func, self) == class;
 	}
 
 	return 0;
 }
 
-int _isOf(const void *_self, const void *_class, 
-		char *selfname, char *file, int line, const char *func) 
+int _isOf(char *selfname, char *file, int line, const char *func,
+		const void *_self, const void *_class) 
 {
 	if (_self)
 	{
-		const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
-		const struct Class *myClass = _classOf(self, selfname, file, line, func);
-		const struct Class *class = _cast(Class(), _class, "Class()", selfname, file, line, func);
+		const struct Object *self = _cast("Object()", selfname, file, line, func, Object(), _self);
+		const struct Class *myClass = _classOf(selfname, file, line, func, self);
+		const struct Class *class = _cast("Class()", selfname, file, line, func, Class(), _class);
 
 		if (class != Object())
 		{
@@ -180,7 +181,7 @@ static void* Class_ctor(void *_self, va_list *ap)
 	self->name = va_arg(*ap, char*);
 	self->super = va_arg(*ap, struct Class*);
 	self->size = va_arg(*ap, size_t);
-	
+
 	if (self->super == NULL)
 	{
 		fprintf(stderr, "Class_ctor: Error: Superclass of class '%s' can't be NULL!\n", 
@@ -193,48 +194,25 @@ static void* Class_ctor(void *_self, va_list *ap)
 			(char*) self->super + offset, 
 			sizeOf(self->super) - offset);
 
-	const struct Class *class = classOf(_self);
-	
-	self->impl_number = class->impl_number;
-	if (self->impl_number != 0)
-	{ 	
-		self->implements = (struct InterfaceElem*)calloc(sizeof(struct InterfaceElem), self->impl_number);
-
-		if (self->implements == NULL)
-		{
-			fprintf(stderr, "Class_ctor: Error: List of implemented interfaces (from superclass '%s') of class '%s' allocation error!\n", 
-					self->super->name, self->name);
-			exit(EXIT_FAILURE);
-		}
-
-		for (unsigned int i = 0; i < self->impl_number; ++i)
-		{
-			self->implements[i].interface = class->implements[i].interface;
-			self->implements[i].offset = class->implements[i].offset;
-		} 
-	}
-	else
-		self->implements = NULL;
-
 	voidf selector;
 
 	va_list ap_copy;
 	va_copy(ap_copy, *ap);
 
 	while ((selector = va_arg(ap_copy, voidf)))
-	{	
+	{
 		voidf method = va_arg(ap_copy, voidf);
 
 		if (selector == (voidf) ctor)
-			self->ctor = (ctor_f) method;
+			update_method(self, ctor, method);
 		else if (selector == (voidf) dtor)
-			self->dtor = (dtor_f) method;
+			update_method(self, dtor, method);
 		else if (selector == (voidf) cpy)
-			self->cpy = (cpy_f) method;
+			update_method(self, cpy, method);
 		else if (selector == (voidf) set)
-			self->set = (set_f) method;
+			update_method(self, set, method);
 		else if (selector == (voidf) get)
-			self->get = (get_f) method;
+			update_method(self, get, method);
 	}
 
 	va_end(ap_copy);
@@ -265,17 +243,21 @@ static const struct Class _Class;
 static const struct Class _Object = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Object", &_Object, sizeof(struct Object),
-	NULL, 0, 
-	Object_ctor, Object_dtor, Object_cpy, 
-	NULL, NULL
+	{ "ctor", (voidf) ctor, (voidf) Object_ctor },
+	{ "dtor", (voidf) dtor, (voidf) Object_dtor },
+	{ "cpy",  (voidf) cpy,  (voidf) Object_cpy },
+	{ "set",  (voidf) NULL, (voidf) NULL },
+	{ "get",  (voidf) NULL, (voidf) NULL },
 };
 
 static const struct Class _Class = {
 	{ MAGIC_NUM, &_Class, 1 },
 	"Class", &_Object, sizeof(struct Class),
-	NULL, 0, 
-	Class_ctor, Class_dtor, Class_cpy, 
-	NULL, NULL
+	{ "ctor", (voidf) ctor, (voidf) Class_ctor },
+	{ "dtor", (voidf) dtor, (voidf) Class_dtor },
+	{ "cpy",  (voidf) cpy,  (voidf) Class_cpy },
+	{ "set",  (voidf) NULL, (voidf) NULL },
+	{ "get",  (voidf) NULL, (voidf) NULL },
 };
 
 const void* const Object(void) {

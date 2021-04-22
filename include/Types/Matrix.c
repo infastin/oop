@@ -36,8 +36,8 @@ static void* MatrixClass_ctor(void *_self, va_list *ap)
 			self->minorOf = (minorOf_f) method;
 		else if (selector == (voidf) matrix_size)
 			self->matrix_size = (matrix_size_f) method;
-		else if (selector == (voidf) determinant)
-			self->determinant = (determinant_f) method;
+		else if (selector == (voidf) slow_determinant)
+			self->slow_determinant = (determinant_f) method;
 	}
 
 	va_end(ap_copy);
@@ -76,16 +76,16 @@ void matrix_size(const void *_self, unsigned int *row, unsigned int *column)
 	mclass->matrix_size(_self, row, column);
 }
 
-void determinant(const void *_self, void **retval)
+void slow_determinant(const void *_self, void **retval)
 {
 	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
 
-	if (mclass->determinant == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'determinant' method!",
+	if (mclass->slow_determinant == NULL)
+		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'slow_determinant' method!",
 				class->name);
 
-	mclass->determinant(_self, retval);
+	mclass->slow_determinant(_self, retval);
 }
 
 /*
@@ -689,7 +689,7 @@ static void Matrix_matrix_size(const void *_self, unsigned int *rows, unsigned i
 	*columns = self->columns;
 }
 
-static void Matrix_determinant(void *_self, void **retval)
+static void Matrix_slow_determinant(void *_self, void **retval)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
@@ -719,7 +719,7 @@ static void Matrix_determinant(void *_self, void **retval)
 			{
 				var res;
 				smart var minor = Matrix_minorOf(_self, 0, j);
-				Matrix_determinant(minor, &res);
+				Matrix_slow_determinant(minor, &res);
 
 				if (j % 2 == 0)
 				{
@@ -870,7 +870,7 @@ ClassImpl(Matrix)
 				scdivide, Matrix_scdivide,
 				minorOf, Matrix_minorOf,
 				matrix_size, Matrix_matrix_size,
-				determinant, Matrix_determinant,
+				slow_determinant, Matrix_slow_determinant,
 				rnd, Matrix_rnd,
 				0);
 	}

@@ -1,22 +1,15 @@
 #ifndef IOINTERFACE_H_XVLPIEOX
 #define IOINTERFACE_H_XVLPIEOX
 
-#include <stdio.h>
-
-#include "Interface.h"
+#include "Macro.h"
+#include "Object.h"
 
 InterfaceHeader(IOInterface);
 
-typedef int   (*sfscan_f)(void *self, FILE *stream, int bin, const char *buffer, int *numb, 
-		int asterisk, int width);
-
-typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
-		int flag, int width, int precision);
-
 struct IOInterface
 {
-	sfscan_f sfscan;
-	sfprint_f sfprint;
+	method sfscan;
+	method sfprint;
 };
 
 /**

@@ -27,7 +27,7 @@ struct MatrixClass
 	const struct TypeClass _;
 	minorOf_f minorOf;
 	matrix_size_f matrix_size;
-	determinant_f determinant;
+	determinant_f slow_determinant;
 };
 
 struct Matrix
@@ -67,13 +67,13 @@ void* minorOf(const void *self, unsigned int row, unsigned int column);
 void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
 
 /**
- * @brief Calculate matrix determinant
+ * @brief Slowly calculate matrix determinant
  *
  * @param[in]  self   Matrix
  * @param[out] retval Where will be determinant
  *
  * @throw MatrixException
  */
-void determinant(const void *self, var *retval);
+void slow_determinant(const void *self, var *retval);
 
 #endif /* end of include guard: MATRIX_H_720USNE8 */

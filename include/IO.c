@@ -30,6 +30,37 @@ char* __varg_string(int n)
 	return result;
 }
 
+int __strtoint(char *file, int line, const char *func, 
+		char *name, const char *p, int *digits)
+{
+	int result = 0;
+	*digits = 0;
+
+	for (int digit = (*p - 48); isdigit(*p); p++, digit = (*p - 48))
+	{
+		if (result <= INT_MAX / 10)
+		{
+			result *= 10;
+
+			if (result <= INT_MAX - digit)
+			{
+				result += digit;
+				(*digits)++;
+			}
+			else
+				exception_throw(GlobalException(), IOException(), 
+						file, line, func, 
+						"Error: Too big %s! (Higher than %d)", name, INT_MAX);
+		}
+		else
+			exception_throw(GlobalException(), IOException(), 
+					file, line, func, 
+					"Error: Too big %s! (Higher than %d)", name, INT_MAX);
+	}
+
+	return result;
+}
+
 /*
  * Print to stream
  */
@@ -100,26 +131,9 @@ int _ovfprintf(char *file, int line, const char *func,
 			}
 			else if (isdigit(*p)) 
 			{
-				width = 0; 
-
-				for (int digit = (*p - 48); isdigit(*p); p++, digit = (*p - 48))
-				{
-					if (width <= INT_MAX / 10)
-					{
-						width *= 10;
-
-						if (width <= INT_MAX - digit)
-							width += digit;
-						else
-							exception_throw(GlobalException(), IOException(), 
-									file, line, func, 
-									"Error: Too big width! (Higher than %d)", INT_MAX);
-					}
-					else
-						exception_throw(GlobalException(), IOException(), 
-								file, line, func, 
-								"Error: Too big width! (Higher than %d)", INT_MAX);
-				}
+				int digits;
+				width = __strtoint(file, line, func, "width", p, &digits); 
+				p += digits;
 			}
 
 			// Check precision
@@ -134,26 +148,9 @@ int _ovfprintf(char *file, int line, const char *func,
 				}
 				else if (isdigit(*p))
 				{
-					precision = 0;
-
-					for (int digit = (*p - 48); isdigit(*p); p++, digit = (*p - 48))
-					{
-						if (precision <= INT_MAX / 10)
-						{
-							precision *= 10;
-
-							if (precision <= INT_MAX - digit)
-								precision += digit;
-							else
-								exception_throw(GlobalException(), IOException(), 
-										file, line, func,
-										"Error: Too big precision! (Higher than %d)", INT_MAX);
-						}
-						else
-							exception_throw(GlobalException(), IOException(), 
-									file, line, func,
-									"Error: Too big precision! (Higher than %d)", INT_MAX);
-					}
+					int digits;
+					precision = __strtoint(file, line, func, "width", p, &digits); 
+					p += digits;
 				}
 			}
 
@@ -184,11 +181,8 @@ int _ovfprintf(char *file, int line, const char *func,
 			char *type_str;
 
 			switch (*p) {
-				case 'd':
-					type = Int();
-					type_str = "Int()";
-					break;
 				case 'i':
+				case 'd':
 					type = Int();
 					type_str = "Int()";
 					break;
@@ -204,13 +198,13 @@ int _ovfprintf(char *file, int line, const char *func,
 					type = Object();
 					type_str = "Object()";
 					break;
-			}	
+			}
 
 			int len = 0;
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
+				var obj = _cast(type_str, varg_str, file, line, func, type, va_arg(ap_copy, var));
 				len = sfprint(obj, stream, 0, NULL, 0, flag, width, precision);
 
 				if (len != -1)
@@ -338,26 +332,9 @@ int _ovfscanf(char *file, int line, const char *func,
 			// Check width
 			if (isdigit(*p))
 			{
-				width = 0; 
-
-				for (int digit = (*p - 48); isdigit(*p); p++, digit = (*p - 48))
-				{
-					if (width <= INT_MAX / 10)
-					{
-						width *= 10;
-
-						if (width <= INT_MAX - digit)
-							width += digit;
-						else
-							exception_throw(GlobalException(), IOException(), 
-									file, line, func, 
-									"Error: Too big width! (Higher than %d)", INT_MAX);
-					}
-					else
-						exception_throw(GlobalException(), IOException(), 
-								file, line, func, 
-								"Error: Too big width! (Higher than %d)", INT_MAX);
-				}
+				int digits;
+				width = __strtoint(file, line, func, "width", p, &digits); 
+				p += digits;			
 			}
 
 			// Check length
@@ -387,33 +364,30 @@ int _ovfscanf(char *file, int line, const char *func,
 			char *type_str;
 
 			switch (*p) {
-			case 'd':
-				type = Int();
-				type_str = "Int()";
-				break;
-			case 'i':
-				type = Int();
-				type_str = "Int()";
-				break;
-			case 'f':
-				type = Float();
-				type_str = "Float()";
-				break;
-			case 'm':
-				type = Matrix();
-				type_str = "Matrix()";
-				break;
-			case 'v':
-				type = Object();
-				type_str = "Object()";
-				break;
+				case 'i':
+				case 'd':
+					type = Int();
+					type_str = "Int()";
+					break;
+				case 'f':
+					type = Float();
+					type_str = "Float()";
+					break;
+				case 'm':
+					type = Matrix();
+					type_str = "Matrix()";
+					break;
+				case 'v':
+					type = Object();
+					type_str = "Object()";
+					break;
 			}
 
 			int res = 0;
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
+				var obj = _cast(type_str, varg_str, file, line, func, type, va_arg(ap_copy, var));
 				res = sfscan(obj, stream, 0, NULL, NULL, asterisk, width);
 
 				if (res != -1 && res != EOF)
@@ -504,26 +478,9 @@ int _ovsscanf(char *file, int line, const char *func,
 			// Check width
 			if (isdigit(*p))
 			{
-				width = 0; 
-
-				for (int digit = (*p - 48); isdigit(*p); p++, digit = (*p - 48))
-				{
-					if (width <= INT_MAX / 10)
-					{
-						width *= 10;
-
-						if (width <= INT_MAX - digit)
-							width += digit;
-						else
-							exception_throw(GlobalException(), IOException(), 
-									file, line, func, 
-									"Error: Too big width! (Higher than %d)", INT_MAX);
-					}
-					else
-						exception_throw(GlobalException(), IOException(), 
-								file, line, func, 
-								"Error: Too big width! (Higher than %d)", INT_MAX);				
-				}
+				int digits;
+				width = __strtoint(file, line, func, "width", p, &digits); 
+				p += digits;				
 			}
 
 			// Check length
@@ -553,11 +510,8 @@ int _ovsscanf(char *file, int line, const char *func,
 			char *type_str;
 			
 			switch (*p) {
-				case 'd':
-					type = Int();
-					type_str = "Int()";
-					break;
 				case 'i':
+				case 'd':
 					type = Int();
 					type_str = "Int()";
 					break;
@@ -579,7 +533,7 @@ int _ovsscanf(char *file, int line, const char *func,
 
 			if (type)
 			{
-				var obj = _cast(type, va_arg(ap_copy, var), type_str, varg_str, file, line, func);
+				var obj = _cast(type_str, varg_str, file, line, func, type, va_arg(ap_copy, var));
 
 				int n;
 				res = sfscan(obj, NULL, 0, s, &n, asterisk, width);

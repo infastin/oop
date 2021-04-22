@@ -30,12 +30,12 @@ int main(int argc, char *argv[])
 
 	{
 		smart var det;
-		determinant(matrix1, &det);
+		slow_determinant(matrix1, &det);
 		oprintf("%f\n", det);
 	}
 
 	var det;
-	determinant(matrix1, &det);
+	slow_determinant(matrix1, &det);
 	oprintln(det);
 
 	/*FILE *T;

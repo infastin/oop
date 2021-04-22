@@ -99,7 +99,8 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 void* _new(char *classname, char *file, int line, const char *func, 
 		const void *_class, ...)
 {
-	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	const struct Class *class = _cast("Class()", classname, file, line, func, 
+			Class(), _class);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -137,7 +138,8 @@ void* _new(char *classname, char *file, int line, const char *func,
 void* _new_stack(char *classname, char *file, int line, const char *func,
 		const void *_class, void *_object, ...)
 {
-	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	const struct Class *class = _cast("Class()", classname, file, line, func, 
+			Class(), _class);
 	struct Object *object;
 
 	if (_object == NULL)
@@ -175,7 +177,8 @@ void* _new_stack(char *classname, char *file, int line, const char *func,
 void* _vnew(char *classname, char *file, int line, const char* func, 
 		const void *_class, va_list *ap)
 {
-	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	const struct Class *class = _cast("Class()", classname, file, line, func, 
+			Class(), _class);
 	struct Object *object;
 
 	if (class->size == 0)
@@ -210,7 +213,8 @@ void* _vnew(char *classname, char *file, int line, const char* func,
 void* _vnew_stack(char *classname, char *file, int line, const char *func,
 		const void *_class, void *_object, va_list *ap)
 {
-	const struct Class *class = _cast(Class(), _class, "Class()", classname, file, line, func);
+	const struct Class *class = _cast("Class()", classname, file, line, func,
+			Class(), _class);
 	struct Object *object;
 
 	if (_object == NULL)
@@ -246,7 +250,8 @@ void _delete(char *selfname, char *file, int line, const char *func,
 		void *_self)
 {
 	if (_self) {
-		const struct Class *class = _classOf(_self, selfname, file, line, func);
+		const struct Class *class = _classOf(selfname, file, line, func,
+				_self);
 
 		const char *name = class->name;
 		size_t size = class->size;
@@ -264,7 +269,8 @@ void _delete(char *selfname, char *file, int line, const char *func,
 void* _copy(char *selfname, char *file, int line, const char *func,
 		const void *_self)
 {
-	const struct Object *self = _cast(Object(), _self, "Object()", selfname, file, line, func);
+	const struct Object *self = _cast("Object()", selfname, file, line, func,
+			Object(), _self);
 	const struct Class *class = self->class;
 	struct Object *object;
 
@@ -300,48 +306,23 @@ void* _copy(char *selfname, char *file, int line, const char *func,
 	return res;
 }
 
-void* _implement(char *selfname, char *file, int line, const char *func,
-		void *_self, unsigned int impl_number, ...)
+/*
+ * Interfaces
+ */
+
+// --
+
+const void* _inew(char *file, int line, const char *func,
+		const char *name, unsigned int extended_nb, unsigned int methods_nb, ...)
 {
-	struct Class *self = _cast(Class(), _self, "Class()", selfname, file, line, func);
-
-	if (impl_number != 0)
+	if (methods_nb == 0 && extended_nb == 0)
 	{
-		self->impl_number += impl_number;	
-		self->implements = (struct InterfaceElem*)realloc(self->implements, sizeof(struct InterfaceElem) * impl_number);
-
-		if (self->implements == NULL)
-		{
-			selerror("Fatal Error: List of implemented interfaces of class '%s' allocation error!", 
-					file, line, func, "implement", self->name);
-			exit(EXIT_FAILURE);
-		}
-
-		va_list ap;
-		va_start(ap, impl_number);
-
-		for (unsigned int i = 0; i < impl_number; ++i)
-		{
-			const struct Interface *inter = va_arg(ap, const struct Interface*);
-			size_t offset = va_arg(ap, size_t);
-
-			self->implements[i].interface = inter;
-			self->implements[i].offset = offset;
-		}
-
-		va_end(ap);
+		selerror("Fatal Error: Interface '%s' can't have zero methods!", 
+				file, line, func, "inew", name);
+		exit(EXIT_FAILURE);
 	}
 
-	return self;
-}
-
-/*
- * Create interface
- */
-const void *_inew(char *file, int line, const char *func, 
-		char *name, unsigned int ext_number, ...)
-{
-	struct Interface *interface = (struct Interface*)calloc(1, sizeof(struct Interface));
+	struct Interface *interface = (struct Interface*)calloc(sizeof(struct Interface), 1);
 
 	if (interface == NULL)
 	{
@@ -351,37 +332,63 @@ const void *_inew(char *file, int line, const char *func,
 	}
 
 	interface->name = name;
-	interface->magic = MAGIC_INUM;
-	interface->ext_number = ext_number;
-	interface->extends = NULL;
+	interface->magic = INTERFACE_MAGIC;
+	interface->method_sels_nb = methods_nb;
 
-	if (ext_number != 0)
-	{ 	
-		interface->extends = (struct InterfaceElem*)calloc(sizeof(struct InterfaceElem), ext_number);
+	va_list ap;
+	va_start(ap, methods_nb);
 
-		if (interface->extends == NULL)
+	if (extended_nb != 0)
+	{
+		va_list ap_copy;
+		va_copy(ap_copy, ap);
+
+		const void *_inter;
+
+		for (int i = 0; i < extended_nb && (_inter = va_arg(ap_copy, const void*)); ++i) 
 		{
-			selerror("Fatal Error: List of extended interfaces of interface '%s' allocation error!", 
-					file, line, func, "inew", name);
-			exit(EXIT_FAILURE);
+			const struct Interface *inter = isInterface(_inter);
+			interface->method_sels_nb += inter->method_sels_nb;
 		}
 
-		va_list ap;
-		va_start(ap, ext_number);
-
-		for (unsigned int i = 0; i < ext_number; ++i)
-		{
-			const struct Interface *inter = va_arg(ap, const struct Interface*);
-			size_t offset = va_arg(ap, size_t);
-
-			interface->extends[i].interface = inter;
-			interface->extends[i].offset = offset;
-		}
-
-		va_end(ap);
+		va_end(ap_copy);
 	}
 
-	return (const void*) interface;
+	interface->method_sels = (voidf*)calloc(sizeof(voidf), interface->method_sels_nb);
+
+	if (interface->method_sels == NULL)
+	{
+		selerror("Fatal Error: Interface's methods '%s' allocation error!", 
+				file, line, func, "inew", name);
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned int mnb = 0;
+	const void *_inter;
+
+	for (int i = 0; i < extended_nb && (_inter = va_arg(ap, const void*)); ++i) 
+	{
+		const struct Interface *inter = isInterface(_inter);
+
+		for (int j = 0; j < inter->method_sels_nb; ++j, ++mnb) 
+		{
+			interface->method_sels[mnb] = inter->method_sels[j];
+		}
+	}
+
+	if (methods_nb != 0)
+	{
+		voidf selector;
+
+		for (; mnb < methods_nb && (selector = va_arg(ap, voidf)); ++mnb) 
+		{
+			interface->method_sels[mnb] = selector;
+		}
+	}
+
+	va_end(ap);
+
+	return interface;
 }
 
 /*
@@ -394,45 +401,51 @@ void* dtor(void *_self)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->dtor == NULL)
+	if (class->dtor.method == NULL)
 	{
 		fprintf(stderr, "dtor: Error: Class '%s' doesn't have 'dtor' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return class->dtor(_self);
+	typedef void *(*dtor_f)(void *self);
+
+	return ((dtor_f) class->dtor.method)(_self);
 }
 
 void* ctor(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->dtor == NULL)
+	if (class->ctor.method == NULL)
 	{
 		fprintf(stderr, "ctor: Error: Class '%s' doesn't have 'ctor' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return class->ctor(_self, ap);
+	typedef void *(*ctor_f)(void *self, va_list *ap);
+
+	return ((ctor_f) class->ctor.method)(_self, ap);
 }
 
 void set(void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->set == NULL) 
+	if (class->set.method == NULL) 
 	{
 		fprintf(stderr, "set: Error: Class '%s' doesn't have 'set' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
+	typedef void (*set_f)(void *self, va_list *ap);
+
 	va_list ap;
 
 	va_start(ap, _self);
-	class->set(_self, &ap);
+	((set_f) class->set.method)(_self, &ap);
 	va_end(ap);
 }
 
@@ -440,31 +453,35 @@ void vset(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->set == NULL) 
+	if (class->set.method == NULL) 
 	{
 		fprintf(stderr, "vset: Error: Class '%s' doesn't have 'set' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	class->set(_self, ap);
+	typedef void (*set_f)(void *self, va_list *ap);
+
+	((set_f) class->set.method)(_self, ap);
 }
 
 void get(const void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->get == NULL) 
+	if (class->get.method == NULL) 
 	{
 		fprintf(stderr, "get: Error: Class '%s' doesn't have 'get' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 	
+	typedef void *(*get_f)(const void *self, va_list *ap);
+
 	va_list ap;
 	
 	va_start(ap, _self);
-	class->get(_self, &ap);
+	((get_f) class->get.method)(_self, &ap);
 	va_end(ap);
 }
 
@@ -472,28 +489,32 @@ void vget(const void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->get == NULL) 
+	if (class->get.method == NULL) 
 	{
 		fprintf(stderr, "vget: Error: Class '%s' doesn't have 'get' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	class->get(_self, ap);
+	typedef void *(*get_f)(const void *self, va_list *ap);
+
+	((get_f) class->get.method)(_self, ap);
 }
 
 void* cpy(const void *_self, void *object)
 {
 	const struct Class *class = classOf(_self);
 
-	if (class->cpy == NULL) 
+	if (class->cpy.method == NULL) 
 	{
 		fprintf(stderr, "cpy: Error: Class '%s' doesn't have 'cpy' method!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return class->cpy(_self, object);
+	typedef void *(*cpy_f)(const void *self, void *object);
+
+	return ((cpy_f) class->cpy.method)(_self, object);
 }
 
 /*
@@ -520,28 +541,33 @@ void* super_ctor(const void *_class, void *_self, va_list *ap)
 {
 	const struct Class *superclass = super(_class);
 
-	if (superclass->ctor == NULL) 
+	if (superclass->ctor.method == NULL) 
 	{
 		fprintf(stderr, "super_ctor: Error: Superclass '%s' doesn't have 'ctor' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return superclass->ctor(_self, ap);
+	typedef void *(*ctor_f)(void *self, va_list *ap);
+
+	return ((ctor_f) superclass->ctor.method)(_self, ap);
+
 }
 
 void* super_dtor(const void *_class, void *_self)
 {
 	const struct Class *superclass = super(_class);
 
-	if (superclass->dtor == NULL) 
+	if (superclass->dtor.method == NULL) 
 	{
 		fprintf(stderr, "super_dtor: Error: Superclass '%s' doesn't have 'dtor' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}	
 
-	return superclass->dtor(_self);
+	typedef void *(*dtor_f)(void *self);
+
+	return ((dtor_f) superclass->dtor.method)(_self);
 }
 
 
@@ -549,12 +575,14 @@ void* super_cpy(const void *_class, const void *_self, void *object)
 {
 	const struct Class *superclass = super(_class);
 
-	if (superclass->cpy == NULL) 
+	if (superclass->cpy.method == NULL) 
 	{
 		fprintf(stderr, "super_cpy: Error: Superclass '%s' doesn't have 'cpy' method!\n",
 				superclass->name);
 		exit(EXIT_FAILURE);
 	}		
 
-	return superclass->cpy(_self, object);
+	typedef void *(*cpy_f)(const void *self, void *object);
+
+	return ((cpy_f) superclass->cpy.method)(_self, object);
 }

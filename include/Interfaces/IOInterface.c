@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "IOInterface.h"
+#include "Macro.h"
 #include "Object.h"
 #include "Selectors.h"
 
@@ -117,42 +118,51 @@ int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn,
 		int flag, int width, int precision)
 {
 	const struct Class *class = classOf(_self);
-	const struct IOInterface *io = icast(IOInterface(), class);
+	const struct IOInterface *io = icast(IOInterface, _self);
 
-	if (io->sfprint == NULL)
+	if (io->sfprint.method == NULL)
 	{
 		fprintf(stderr, "sfprint: Error: Class '%s' doesn't implement 'sfprint' method of 'IOInterface'!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return io->sfprint(_self, stream, bin, buffer, maxn, flag, width, precision);
+	typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
+			int flag, int width, int precision);
+
+	return ((sfprint_f) io->sfprint.method)(_self, stream, bin, buffer, maxn, flag, width, precision);
 }
 
 int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
 		int asterisk, int width)
 {
 	const struct Class *class = classOf(_self);
-	const struct IOInterface *io = icast(IOInterface(), class);
+	const struct IOInterface *io = icast(IOInterface, _self);
 
-	if (io->sfscan == NULL) 
+	if (io->sfscan.method == NULL) 
 	{
 		fprintf(stderr, "sfscan: Error: Class '%s' doesn't implement 'sfscan' method of 'IOInterface'!\n",
 				class->name);
 		exit(EXIT_FAILURE);
 	}
 
-	return io->sfscan(_self, stream, bin, buffer, numb, asterisk, width);
+	typedef int   (*sfscan_f)(void *self, FILE *stream, int bin, const char *buffer, int *numb, 
+			int asterisk, int width);
+
+	return ((sfscan_f) io->sfscan.method)(_self, stream, bin, buffer, numb, asterisk, width);
 }
 
 /*
- * Interface Initialization
+ * Initialization
  */
+
 InterfaceImpl(IOInterface)
 {
 	if (!_IOInterface)
 	{
-		_IOInterface = inew("IOInterface", 0);
+		_IOInterface = inew("IOInterface", 0, 2, 
+				(voidf) sfscan, 
+				(voidf) sfprint);
 	}
 
 	return _IOInterface;

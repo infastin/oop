@@ -7,6 +7,7 @@
 #include <execinfo.h>
 
 #include "Exception.h"
+#include "Object.h"
 #include "Selectors.h"
 
 /*
@@ -215,10 +216,10 @@ const void* exception_catch(void *_self, ...)
 	return NULL;
 }
 
-void exception_throw(void *_self, const void *_obj, char *file, int line, const char *func, char *fmt,  ...)
+void exception_throw(void *_self, const void *_obj, char *file, int line, const char *func, char *fmt, ...)
 {
-	struct Exception *self = cast(Exception(), _self);
-	struct ExceptionObject *obj = cast(ExceptionObject(), _obj);
+	struct Exception *self = _cast("Exception()", "_self", file, line, func, Exception(), _self);
+	struct ExceptionObject *obj = _cast("ExceptionObject()", "_obj", file, line, func, ExceptionObject(), _obj);
 
 	if (obj->msg)
 		free(obj->msg);

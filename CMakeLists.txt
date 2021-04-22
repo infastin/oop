@@ -53,6 +53,7 @@ target_link_libraries(base types interfaces)
 add_library(interfaces STATIC
 			${INTERFACES_FOLDER}/IOInterface.c
 			${INTERFACES_FOLDER}/ScalarOperatorsInterface.c
+			${INTERFACES_FOLDER}/SortInterface.c
 			${INTERFACES_FOLDER}/OperatorsInterface.c)
 target_link_libraries(interfaces base)
 

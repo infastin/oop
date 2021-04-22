@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "Macro.h"
 #include "TypeClass.h"
 #include "Selectors.h"
 #include "Exception.h"
@@ -14,89 +15,90 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 {
 	struct TypeClass *self = super_ctor(TypeClass(), _self, ap);
 
-	voidf selector;
-	va_list ap_copy;
-	va_copy(ap_copy, *ap);
-
-	self->cmp = NULL;
-	self->swap = NULL;
-	self->rnd = NULL;
+	init_method(self, rnd);
 
 /*! TODO: Other operators
 *  \todo modulo, and, or, xor, left and right shifts
 */	
 
-	self->inverse_add = NULL;
-	self->inverse_multi = NULL;
+	init_method(self, inverse_add);
+	init_method(self, inverse_multi);
 
-	struct IOInterface *self_io = icast(IOInterface(), _self);
+	struct IOInterface *self_io = go_to_field(self, struct TypeClass, io);
+	init_method(self_io, sfprint);
+	init_method(self_io, sfscan);
 
-	self_io->sfprint = NULL;
-	self_io->sfscan = NULL;
+	struct OperatorsInterface *self_oper = go_to_field(self, struct TypeClass, oper);
+	init_method(self_oper, sum);
+	init_method(self_oper, subtract);
+	init_method(self_oper, product);
+	init_method(self_oper, divide);
+	init_method(self_oper, modulo);
+	init_method(self_oper, onecompl);
+	init_method(self_oper, lshift);
+	init_method(self_oper, rshift);
 
-	struct OperatorsInterface *self_oper = icast(OperatorsInterface(), _self);
+	struct ScalarOperatorsInterface *self_sc = go_to_field(self, struct TypeClass, sc);
+	init_method(self_sc, scadd);
+	init_method(self_sc, scsub);
+	init_method(self_sc, scmulti);
+	init_method(self_sc, scdivide);
 
-	self_oper->sum = NULL;
-	self_oper->subtract = NULL;
-	self_oper->product = NULL;
-	self_oper->divide = NULL;
-	self_oper->modulo = NULL;
-	self_oper->onecompl = NULL;
-	self_oper->rshift = NULL;
-	self_oper->lshift = NULL;
+	struct SortInterface *self_sort = go_to_field(self, struct TypeClass, sort);
+	init_method(self_sort, cmp);
+	init_method(self_sort, swap);
 
-	struct ScalarOperatorsInterface *self_sc = icast(ScalarOperatorsInterface(), _self);
+	voidf selector;
 
-	self_sc->scadd = NULL;
-	self_sc->scsub = NULL;
-	self_sc->scmulti = NULL;
-	self_sc->scdivide = NULL;
+	va_list ap_copy;
+	va_copy(ap_copy, *ap);
 
 	while ((selector = va_arg(ap_copy, voidf)))
 	{
 		voidf method = va_arg(ap_copy, voidf);
 
-		if (selector == (voidf) cmp)
-			self->cmp = (cmp_f) method;
-		else if (selector == (voidf) swap)
-			self->swap = (swap_f) method;
-		else if (selector == (voidf) inverse_add)
-			self->inverse_add = (inverse_add_f) method;
+		if (selector == (voidf) inverse_add)
+			update_method(self, inverse_add, method);
 		else if (selector == (voidf) inverse_multi)
-			self->inverse_multi = (inverse_multi_f) method;
+			update_method(self, inverse_multi, method);
 		else if (selector == (voidf) rnd)
-			self->rnd = (rnd_f) method;
+			update_method(self, rnd, method);
 	
 		else if (selector == (voidf) sum)
-			self_oper->sum = (sum_f) method;
+			update_method(self_oper, sum, method);
 		else if (selector == (voidf) subtract)
-			self_oper->subtract = (subtract_f) method;
+			update_method(self_oper, subtract, method);
 		else if (selector == (voidf) product)
-			self_oper->product = (product_f) method;
+			update_method(self_oper, product, method);
 		else if (selector == (voidf) divide)
-			self_oper->divide = (divide_f) method;
+			update_method(self_oper, divide, method);
 		else if (selector == (voidf) modulo)
-			self_oper->modulo = (modulo_f) method;
+			update_method(self_oper, modulo, method);
 		else if (selector == (voidf) onecompl)
-			self_oper->onecompl = (onecompl_f) method;
+			update_method(self_oper, onecompl, method);
 		else if (selector == (voidf) lshift)
-			self_oper->lshift = (lshift_f) method;
+			update_method(self_oper, lshift, method);
 		else if (selector == (voidf) rshift)
-			self_oper->rshift = (rshift_f) method;
+			update_method(self_oper, rshift, method);
 
 		else if (selector == (voidf) sfprint)
-			self_io->sfprint = (sfprint_f) method;
+			update_method(self_io, sfprint, method);
 		else if (selector == (voidf) sfscan)
-			self_io->sfscan = (sfscan_f) method;
+			update_method(self_io, sfscan, method);
 		
 		else if (selector == (voidf) scadd)
-			self_sc->scadd = (scadd_f) method;
+			update_method(self_sc, scadd, method);
 		else if (selector == (voidf) scsub)
-			self_sc->scsub = (scsub_f) method;
+			update_method(self_sc, scsub, method);
 		else if (selector == (voidf) scmulti)
-			self_sc->scmulti = (scmulti_f) method;
+			update_method(self_sc, scmulti, method);
 		else if (selector == (voidf) scdivide)
-			self_sc->scdivide = (scdivide_f) method;
+			update_method(self_sc, scdivide, method);
+
+		if (selector == (voidf) cmp)
+			update_method(self_sort, cmp, method);
+		else if (selector == (voidf) swap)
+			update_method(self_sort, swap, method);
 	}
 
 	va_end(ap_copy);
@@ -107,30 +109,19 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
  * New selectors for Types
  */
 
-// Compare two variables of the same type
-int cmp(const void *_self, const void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->cmp == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'cmp' method!",
-				class->name);
-
-	return tclass->cmp(_self, b);
-}
-
 // Return variable, inversed by addition, of some type  (a copy)
 void* inverse_add(void *_self)
 {
 	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
 
-	if (tclass->inverse_add == NULL)
+	if (tclass->inverse_add.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_add' method!",
 				class->name);
 	
-	return tclass->inverse_add(_self);
+	typedef void *(*inverse_add_f)(void *self);
+
+	return ((inverse_add_f) tclass->inverse_add.method)(_self);
 }
 
 // Return variable, inversed by multiplication, of some type (a copy)
@@ -139,24 +130,13 @@ void* inverse_multi(void *_self)
 	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
 	const struct Class *class = _self;
 
-	if (tclass->inverse_multi == NULL)
+	if (tclass->inverse_multi.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_multi' method!",
 				class->name);
 
-	return tclass->inverse_multi(_self);
-}
+	typedef void *(*inverse_multi_f)(void *self);
 
-// Swap values of two variables of some type
-void swap(void *_self, void *b)
-{
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (tclass->swap == NULL)
-		throw(TypeException(), "Error: Type '%s' doesn't have 'swap' method!",
-				class->name);
-
-	tclass->swap(_self, b);
+	return ((inverse_multi_f) tclass->inverse_multi.method)(_self);
 }
 
 // Create new element width random value (if _self == NULL)
@@ -166,14 +146,16 @@ void* rnd(const void *_class, void *_self, ...)
 	const struct TypeClass *tclass = cast(TypeClass(), _class);
 	const struct Class *class = _class;
 
-	if (tclass->rnd == NULL)
+	if (tclass->rnd.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'rnd' method!",
 				class->name);
+
+	typedef void *(*rnd_f)(void *self, va_list *ap);
 
 	va_list ap;
 
 	va_start(ap, _self);
-	void *result = tclass->rnd(_self, &ap);
+	void *result = ((rnd_f) tclass->rnd.method)(_self, &ap);
 	va_end(ap);
 
 	return result;
@@ -184,11 +166,13 @@ void* vrnd(const void *_class, void *_self, va_list *ap)
 	const struct TypeClass *tclass = cast(TypeClass(), _class);
 	const struct Class *class = _class;
 
-	if (tclass->rnd == NULL)
+	if (tclass->rnd.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'rnd' method!",
 				class->name);
 
-	return tclass->rnd(_self, ap);
+	typedef void *(*rnd_f)(void *self, va_list *ap);
+
+	return ((rnd_f) tclass->rnd.method)(_self, ap);
 }
 
 /*
@@ -204,11 +188,6 @@ ClassImpl(TypeClass)
 				ctor, TypeClass_ctor,
 				0);
 
-		tclass = implement(tclass, 3,
-				IOInterface(), offsetof(struct TypeClass, io),
-				ScalarOperatorsInterface(), offsetof(struct TypeClass, sc),
-				OperatorsInterface(), offsetof(struct TypeClass, oper));
-
 		_TypeClass = tclass;
 	}
 
@@ -221,7 +200,7 @@ ClassImpl(TypeClass)
 
 ObjectImpl(TypeException)
 {
-	if (_TypeException)
+	if (!_TypeException)
 	{
 		_TypeException = new(ExceptionObject(), "TypeException");
 	}

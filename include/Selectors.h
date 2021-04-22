@@ -7,6 +7,8 @@
 #include <stdio.h>
 
 #include "Object.h"
+#include "Interface.h"
+#include "Macro.h"
 
 /**
  * @file Selectors.h
@@ -64,17 +66,10 @@ void* _copy(char *selfname, char *file, int line, const char *func,
 		const void *self);
 
 /**
- * @brief implement wraps this function to provide better logging and debuging
- */
-void* _implement(char *selfname, char *file, int line, const char *func,
-		void *_self, unsigned int impl_number, ...);
-
-
-/**
  * @brief inew wraps this function to provide better logging and debuging
  */
-const void *_inew(char *file, int line, const char *func,
-		char *name, unsigned int ext_number, ...);
+const void* _inew(char *file, int line, const char *func,
+		const char *name, unsigned int extended_nb, unsigned int methods_nb, ...);
 
 
 /**
@@ -190,11 +185,12 @@ void vget(const void *self, va_list *ap);
  * @brief Create new object
  *
  * @param class Class
- * @param ...   List of arguments
+ * @param args  List of arguments
  *
  * @return Object
  */
-#define new(class...) _new(#class, __FILE__, __LINE__, __FUNCTION__, class)
+#define new(class, ...) _new(TOSTR(class), __FILE__, __LINE__, __FUNCTION__, \
+		class, ## __VA_ARGS__)
 
 
 /**
@@ -206,7 +202,8 @@ void vget(const void *self, va_list *ap);
  *
  * @return Object
  */
-#define new_stack(class, object...) _new_stack(#class, __FILE__, __LINE__, __FUNCTION__, class, object)
+#define new_stack(class, object...) _new_stack(TOSTR(class), __FILE__, __LINE__, __FUNCTION__, class, \
+		object)
 
 
 /**
@@ -215,7 +212,7 @@ void vget(const void *self, va_list *ap);
  * So you don't need to allocate memory in stack by hand
  *
  * @param class Class
- * @param ...   List of arguments
+ * @param args  List of arguments
  *
  * @return Object
  */
@@ -225,7 +222,8 @@ void vget(const void *self, va_list *ap);
 /**
  * @brief Same as new_stack
  */
-#define vnew_stack(class, object, ap) _vnew_stack(#class, __FILE__, __LINE__, __FUNCTION__, class, object, ap)
+#define vnew_stack(class, object, ap) _vnew_stack(TOSTR(class), __FILE__, __LINE__, __FUNCTION__, \
+		class, object, ap)
 
 
 /**
@@ -257,7 +255,8 @@ void vget(const void *self, va_list *ap);
 /**
  * @brief Same as new
  */
-#define vnew(class, ap) _vnew(#class, __FILE__, __LINE__, __FUNCTION__, class, ap)
+#define vnew(class, ap) _vnew(TOSTR(class), __FILE__, __LINE__, __FUNCTION__, \
+		class, ap)
 
 
 /**
@@ -267,7 +266,8 @@ void vget(const void *self, va_list *ap);
  *
  * @return Object
  */
-#define copy(self) _copy(#self, __FILE__, __LINE__, __FUNCTION__, self)
+#define copy(self) _copy(TOSTR(self), __FILE__, __LINE__, __FUNCTION__, \
+		self)
 
 
 /**
@@ -275,19 +275,8 @@ void vget(const void *self, va_list *ap);
  *
  * @param self Object
  */
-#define delete(self) _delete(#self, __FILE__, __LINE__, __FUNCTION__, self)
-
-
-/**
- * @brief Set class' interfaces
- *
- * @param self 		  Class
- * @param impl_number Number of interfaces
- * @param ... 		  Pairs of interfaces and their offsets in the class structure
- *
- * @return Class
- */
-#define implement(self, impl_number...) _implement(#self, __FILE__, __LINE__, __FUNCTION__, self, impl_number)
+#define delete(self) _delete(TOSTR(self), __FILE__, __LINE__, __FUNCTION__, \
+		self)
 
 
 /**
@@ -299,6 +288,7 @@ void vget(const void *self, va_list *ap);
  *
  * @return Class
  */
-#define inew(name, ext_number...) _inew(__FILE__, __LINE__, __FUNCTION__, name, ext_number)
+#define inew(name, extended_nb, methods_nb...) _inew(__FILE__, __LINE__, __FUNCTION__, \
+		name, extended_nb, methods_nb)
 
 #endif /* end of include guard: NEW_H_0FEJN6R1 */
