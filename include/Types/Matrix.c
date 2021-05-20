@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -6,106 +8,117 @@
 
 #include "IO.h"
 #include "Exception.h"
+#include "Macro.h"
 #include "Matrix.h"
 #include "ReferenceCounter.h"
 #include "Selectors.h"
 #include "TypeClass.h"
 #include "Utils.h"
+#include "Matrix.h"
+#include "CollectionInterface.h"
 
-/*
- * MatrixClass
- */
-
-// ---
+/* MatrixClass {{{ */
 
 static void* MatrixClass_ctor(void *_self, va_list *ap)
 {
 	struct MatrixClass *self = super_ctor(MatrixClass(), _self, ap);
 
+	init_method(self, minorOf);
+	init_method(self, slow_determinant);
+	init_method(self, fast_determinant);
+
+	struct CollectionInterface *self_ci = go_to_field(self, struct MatrixClass, ci);
+	init_method(self_ci, sort);
+	init_method(self_ci, get_size);
+
 	voidf selector;
 	va_list ap_copy;
 	va_copy(ap_copy, *ap);
-
-	self->minorOf = NULL;
 
 	while ((selector = va_arg(ap_copy, voidf)))
 	{
 		voidf method = va_arg(ap_copy, voidf);
 
 		if (selector == (voidf) minorOf)
-			self->minorOf = (minorOf_f) method;
-		else if (selector == (voidf) matrix_size)
-			self->matrix_size = (matrix_size_f) method;
+			update_method(self, minorOf, method);
 		else if (selector == (voidf) slow_determinant)
-			self->slow_determinant = (determinant_f) method;
+			update_method(self, slow_determinant, method);
+		else if (selector == (voidf) fast_determinant)
+			update_method(self, fast_determinant, method);
+
+		else if (selector == (voidf) get_size)
+			update_method(self_ci, get_size, method);
+		else if (selector == (voidf) sort)
+			update_method(self_ci, get_size, method);
+
 	}
 
 	va_end(ap_copy);
 	return self;
 }
 
-/*
- * Selectors
- */
+/* Selectors */
 
-// ---
-
-void* minorOf(const void *_self, unsigned int row, unsigned int column)
+void* minorOf(const void *_self, size_t row, size_t column)
 {
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
+	const struct Class *class = classOf(_self);
+	const struct MatrixClass *mclass = cast(TypeClass(), class);
 
-	if (mclass->minorOf == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'minorOf' method!",
+	if (mclass->minorOf.method == NULL)
+		throw(MatrixException(), "Error: Class '%s' doesn't have 'minorOf' method!",
 				class->name);
 
-	void* result = mclass->minorOf(_self, row, column);
+	typedef void *(*minorOf_f)(const void *self, size_t row, size_t column);
+
+	void* result = ((minorOf_f) mclass->minorOf.method)(_self, row, column);
 
 	return result;
 }
 
-void matrix_size(const void *_self, unsigned int *row, unsigned int *column)
-{
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
-
-	if (mclass->matrix_size == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'matrix_size' method!",
-				class->name);
-
-	mclass->matrix_size(_self, row, column);
-}
-
 void slow_determinant(const void *_self, void **retval)
 {
-	const struct MatrixClass *mclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
+	const struct Class *class = classOf(_self);
+	const struct MatrixClass *mclass = cast(TypeClass(), class);
 
-	if (mclass->slow_determinant == NULL)
-		throw(MatrixException(), "Error: Matrix '%s' doesn't have 'slow_determinant' method!",
+	if (mclass->slow_determinant.method == NULL)
+		throw(MatrixException(), "Error: Class '%s' doesn't have 'slow_determinant' method!",
 				class->name);
 
-	mclass->slow_determinant(_self, retval);
+	typedef void (*slow_determinant_f)(const void *self, void **retval);
+
+	((slow_determinant_f) mclass->slow_determinant.method)(_self, retval);
 }
 
-/*
- * Matrix
- */
+void fast_determinant(const void *_self, void **retval)
+{
+	const struct Class *class = classOf(_self);
+	const struct MatrixClass *mclass = cast(TypeClass(), class);
 
-// ---
+	if (mclass->fast_determinant.method == NULL)
+		throw(MatrixException(), "Error: Class '%s' doesn't have 'fast_determinant' method!",
+				class->name);
+
+	typedef void (*fast_determinant_f)(const void *self, void **retval);
+
+	((fast_determinant_f) mclass->fast_determinant.method)(_self, retval);
+}
+
+/* }}} */
+
+/* Matrix {{{ */
 
 static void* Matrix_ctor(void *_self, va_list *ap)
 {
 	struct Matrix *self = super_ctor(Matrix(), _self, ap);
 
-	unsigned int columns, rows;
+	size_t columns, rows;
 
 	va_list ap_copy;
 	va_copy(ap_copy, *ap);
 
-	self->type = cast(TypeClass(), va_arg(ap_copy, void*));
-	rows = va_arg(ap_copy, unsigned int);
-	columns = va_arg(ap_copy, unsigned int);
+	self->type = cast(TypeClass(), va_arg(ap_copy, const void*));
+	rows = va_arg(ap_copy, size_t);
+	columns = va_arg(ap_copy, size_t);
 	self->mass = NULL;
 
 	self->determinant = NULL;
@@ -113,7 +126,7 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 
 	if (rows == 0 || columns == 0) {
 		delete(self);
-		throw(MatrixException(), "Error: Can't create matrix with zero rows or columns! (%u, %u)",
+		throw(MatrixException(), "Error: Can't create matrix with zero rows or columns! (%lu, %lu)",
 				rows, columns);
 	}
 
@@ -124,20 +137,21 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 
 	mass = (void***)calloc(sizeof(void**), self->rows);
 	if (mass == NULL)
+	{
+		delete(self);
 		throw(MatrixException(), "Fatal Error: Matrix pointers allocation error!");
+	}
 
 	mass[0] = (void**)calloc(sizeof(void*), self->rows * self->columns);
 	if (mass[0] == NULL)
+	{
+		delete(self);
 		throw(MatrixException(), "Fatal Error: Matrix items allocation error!");
+	}
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
 		mass[i] = mass[0] + i * self->columns;
-
-		for (unsigned int j = 0; j < self->columns; j++)
-		{
-			mass[i][j] = NULL;
-		}
 	}
 
 	va_end(ap_copy);
@@ -148,8 +162,8 @@ static void* Matrix_ctor(void *_self, va_list *ap)
 
 static void* Matrix_cpy(const void *_self, void *_object)
 {
-	const struct Matrix *self = _self;
-	smart struct Matrix *object = super_cpy(Matrix(), _self, _object);
+	const struct Matrix *self = cast(Matrix(), _self);
+	struct Matrix *object = super_cpy(Matrix(), _self, _object);
 
 	object->rows = self->rows;
 	object->columns = self->columns;
@@ -175,61 +189,54 @@ static void* Matrix_cpy(const void *_self, void *_object)
 		throw(MatrixException(), "Fatal Error: Matrix items allocation error!");
 	}
 
-	for (unsigned int i = 0; i < object->rows; i++)
+	for (size_t i = 0; i < object->rows; i++)
 	{
 		mass[i] = mass[0] + i * object->columns;
 
-		for (unsigned int j = 0; j < object->columns; j++)
+		for (size_t j = 0; j < object->columns; j++)
 		{
-			if (self->mass[i][j] == NULL)
-				mass[i][j] = NULL;
-			else
+			if (self->mass[i][j] != NULL)
 				mass[i][j] = copy(self->mass[i][j]);
 		}
 	}
 
 	object->mass = mass;
 
-	return retain(object);
+	return object;
 }
 
 static void Matrix_set(void *_self, va_list *ap)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
-	unsigned int row = va_arg(*ap, unsigned int);
-	unsigned int column = va_arg(*ap, unsigned int);
+	size_t row = va_arg(*ap, size_t);
+	size_t column = va_arg(*ap, size_t);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "Error: Element at (%u, %u) is out of bounds!", 
+		throw(MatrixException(), "Error: Element at (%lu, %lu) is out of bounds!", 
 				row, column);
 
 	if (self->mass[row][column] == NULL)
-	{
-		char tmp[sizeOf(self->type)];
-		void *stack = (void*) &tmp[0];
-
-		self->mass[row][column] = vnew_stack(self->type, stack, ap);
-	}
+		self->mass[row][column] = vnew(self->type, ap);
 	else
 		vset(self->mass[row][column], ap);
 
 	self->changed = 1;
 }
 
-static void Matrix_get(void *_self, va_list *ap)
+static void Matrix_get(const void *_self, va_list *ap)
 {
-	struct Matrix *self = cast(Matrix(), _self);
+	const struct Matrix *self = cast(Matrix(), _self);
 
-	unsigned int row = va_arg(*ap, unsigned int);
-	unsigned int column = va_arg(*ap, unsigned int);
+	size_t row = va_arg(*ap, size_t);
+	size_t column = va_arg(*ap, size_t);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "Error: Element at (%u, %u) is out of bounds!", 
+		throw(MatrixException(), "Error: Element at (%lu, %lu) is out of bounds!", 
 				row, column);
 
 	if (self->mass[row][column] == NULL)
-		throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+		throw(MatrixException(), "Error: Element at (%lu, %lu) doesn't exist! (equals NULL)", 
 				row, column);
 
 	vget(self->mass[row][column], ap);
@@ -241,7 +248,20 @@ static void* Matrix_dtor(void *_self)
 
 	if (self->mass != NULL)
 	{
-		free(self->mass[0]);
+		if (self->mass[0] != NULL)
+		{
+			for (size_t i = 0; i < self->rows; ++i) 
+			{
+				for (size_t j = 0; j < self->columns; ++j) 
+				{
+					if (self->mass[i][j] != NULL)
+						delete(self->mass[i][j]);
+				}
+			}
+
+			free(self->mass[0]);
+		}
+		
 		free(self->mass);
 	}
 
@@ -256,9 +276,9 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 	// Getting size
 	int size = 0;
 
-	for (unsigned int i = 0; i < self->rows; ++i) 
+	for (size_t i = 0; i < self->rows; ++i) 
 	{
-		for (unsigned int j = 0; j < self->columns; ++j) 
+		for (size_t j = 0; j < self->columns; ++j) 
 		{
 			int chck = sfprint(self->mass[i][j], NULL, 0, NULL, 0, flag, width, precision);
 	
@@ -282,9 +302,9 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		{
 			size = 0;
 
-			for (unsigned int i = 0; i < self->rows; ++i) 
+			for (size_t i = 0; i < self->rows; ++i) 
 			{
-				for (unsigned int j = 0; j < self->columns; ++j) 
+				for (size_t j = 0; j < self->columns; ++j) 
 				{
 					int sz = sfprint(self->mass[i][j], stream, 1, NULL, 0, flag, width, precision);
 
@@ -297,11 +317,14 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		}
 		else
 		{
-			for (unsigned int i = 0; i < self->rows; ++i) 
+			for (size_t i = 0; i < self->rows; ++i) 
 			{
-				for (unsigned int j = 0; j < self->columns; ++j) 
+				for (size_t j = 0; j < self->columns; ++j) 
 				{
-					sfprint(self->mass[i][j], stream, 0, NULL, 0, flag, width, precision);
+					int sz = sfprint(self->mass[i][j], stream, 0, NULL, 0, flag, width, precision);
+
+					if (sz <= 0)
+						throw(IOException(), "Error: some error occured during printing!");
 
 					if (j != self->columns - 1)
 						fputc(' ', stream);
@@ -322,9 +345,9 @@ static int Matrix_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 		else
 			psize = maxn;
 
-		for (unsigned int i = 0; i < self->rows; ++i)
+		for (size_t i = 0; i < self->rows; ++i)
 		{
-			for (unsigned int j = 0; j < self->columns && psize != 1; ++j) 
+			for (size_t j = 0; j < self->columns && psize != 1; ++j) 
 			{
 				int sz = sfprint(self->mass[i][j], NULL, 0, p, psize + 1, flag, width, precision);
 
@@ -372,9 +395,9 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 
 	if (stream != NULL)
 	{
-		for (unsigned int i = 0; i < self->rows; ++i) 
+		for (size_t i = 0; i < self->rows; ++i) 
 		{
-			for (unsigned int j = 0; j < self->columns; ++j) 
+			for (size_t j = 0; j < self->columns; ++j) 
 			{
 				if (!self->mass[i][j])
 					self->mass[i][j] = new(self->type);
@@ -389,10 +412,11 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 							char *rspel = int_spelling(i + 1);
 							char *clspel = int_spelling(j);
 
-							throw(IOException(), "Error: didn't expect newline character after %u%s element at %u%s row!", 
+							throw(IOException(), "Error: didn't expect newline character after %lu%s element at %lu%s row!", 
 									j, clspel, i + 1, rspel);
 						}
 					}
+					ungetc(c, stream);
 				}
 
 				int n;
@@ -416,7 +440,7 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 					{
 						char *rspel = int_spelling(i + 1);
 
-						throw(IOException(), "Error: couldn't find newline character after scanning %u%s row!", 
+						throw(IOException(), "Error: couldn't find newline character after scanning %lu%s row!", 
 								i + 1, rspel);
 					}
 				}
@@ -427,9 +451,9 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 	{
 		const char *p = buffer;
 
-		for (unsigned int i = 0; i < self->rows; ++i) 
+		for (size_t i = 0; i < self->rows; ++i) 
 		{
-			for (unsigned int j = 0; j < self->columns; ++j) 
+			for (size_t j = 0; j < self->columns; ++j) 
 			{
 				if (!self->mass[i][j])
 					self->mass[i][j] = new(self->type);
@@ -443,7 +467,7 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 							char *rspel = int_spelling(i + 1);
 							char *clspel = int_spelling(j);
 
-							throw(IOException(), "Error: didn't expect newline character after %u%s element at %u%s row!", 
+							throw(IOException(), "Error: didn't expect newline character after %lu%s element at %lu%s row!", 
 									j, clspel, i + 1, rspel);
 						}
 
@@ -473,7 +497,7 @@ static int Matrix_sfscan(void *_self, FILE *stream, int bin, const char *buffer,
 					{
 						char *rspel = int_spelling(i + 1);
 
-						throw(IOException(), "Error: couldn't find newline character after scanning %u%s row!", 
+						throw(IOException(), "Error: couldn't find newline character after scanning %lu%s row!", 
 								i + 1, rspel);
 					}
 
@@ -506,14 +530,14 @@ static void* Matrix_sum(const void *_self, const void *b)
 	}
 
 	if (self->rows != B->rows && self->columns != B->columns)
-		throw(MatrixException(), "Error: Trying to sum matrices with different dimensions! (%ux%u and %ux%u)", 
+		throw(MatrixException(), "Error: Trying to sum matrices with different dimensions! (%lux%lu and %lux%lu)", 
 				self->rows, self->columns, B->rows, B->columns);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
-		for (unsigned int j = 0; j < self->columns; j++)
+		for (size_t j = 0; j < self->columns; j++)
 		{
 			result->mass[i][j] = sum(self->mass[i][j], B->mass[i][j]);
 		}
@@ -537,14 +561,14 @@ static void* Matrix_subtract(const void *_self, const void *b)
 	}
 
 	if (self->rows != B->rows && self->columns != B->columns)
-		throw(MatrixException(), "Error: Trying to subtract matrices with different dimensions! (%ux%u and %ux%u)", 
+		throw(MatrixException(), "Error: Trying to subtract matrices with different dimensions! (%lux%lu and %lux%lu)", 
 				self->rows, self->columns, B->rows, B->columns);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, self->columns);
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
-		for (unsigned int j = 0; j < self->columns; j++)
+		for (size_t j = 0; j < self->columns; j++)
 		{
 			result->mass[i][j] = subtract(self->mass[i][j], B->mass[i][j]);
 		}
@@ -568,16 +592,16 @@ static void* Matrix_product(const void *_self, const void *b)
 	}
 
 	if (self->columns != B->rows)
-		throw(MatrixException(), "Error: Trying to multiply matrices with different columns and rows number! (%u and %u)", 
+		throw(MatrixException(), "Error: Trying to multiply matrices with different columns and rows number! (%lu and %lu)", 
 				self->columns, B->rows);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows, B->columns);
 
-	for (unsigned int i = 0; i < result->rows; i++)
+	for (size_t i = 0; i < result->rows; i++)
 	{
-		for (unsigned int j = 0; j < result->columns; j++)
+		for (size_t j = 0; j < result->columns; j++)
 		{
-			for (unsigned int k = 0; k < self->columns; k++)
+			for (size_t k = 0; k < self->columns; k++)
 			{
 				var prod = product(self->mass[i][k], B->mass[k][j]);
 				
@@ -603,15 +627,15 @@ static void Matrix_scmulti(void *_self, va_list *ap)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
 		va_list ap_copy;
 		va_copy(ap_copy, *ap);
 
-		for (unsigned int j = 0; j < self->columns; j++)
+		for (size_t j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
-				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+				throw(MatrixException(), "Error: Element at (%lu, %lu) doesn't exists! (equals NULL)", 
 						i, j);
 
 			va_list ap_copy_copy;
@@ -628,15 +652,15 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 {
 	struct Matrix *self = cast(Matrix(), _self);
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
 		va_list ap_copy;
 		va_copy(ap_copy, *ap);
 
-		for (unsigned int j = 0; j < self->columns; j++)
+		for (size_t j = 0; j < self->columns; j++)
 		{
 			if (self->mass[i][j] == NULL)
-				throw(MatrixException(), "Error: Element at (%u, %u) doesn't exists! (equals NULL)", 
+				throw(MatrixException(), "Error: Element at (%lu, %lu) doesn't exists! (equals NULL)", 
 						i, j);
 
 			va_list ap_copy_copy;
@@ -649,22 +673,22 @@ static void Matrix_scdivide(void *_self, va_list *ap)
 	self->changed = 1;
 }
 
-static void* Matrix_minorOf(const void *_self, unsigned int row, unsigned int column)
+static void* Matrix_minorOf(const void *_self, size_t row, size_t column)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
 
 	if (row >= self->rows || column >= self->columns)
-		throw(MatrixException(), "Error: No such row or/and column with given indexes (%u, %u) in given matrix! (Max: %u, %u)",
+		throw(MatrixException(), "Error: No such row or/and column with given indexes (%lu, %lu) in given matrix! (Max: %lu, %lu)",
 				row, column, self->rows - 1, self->columns - 1);
 
 	struct Matrix *result = new(Matrix(), self->type, self->rows - 1, self->columns - 1);
 	void ***p = result->mass;
 
-	for (unsigned int i = 0; i < self->rows; i++)
+	for (size_t i = 0; i < self->rows; i++)
 	{
 		if (i != row)
 		{
-			for (unsigned int j = 0; j < self->columns; j++)
+			for (size_t j = 0; j < self->columns; j++)
 			{
 				if (j != column)
 				{
@@ -681,9 +705,12 @@ static void* Matrix_minorOf(const void *_self, unsigned int row, unsigned int co
 	return result;
 }
 
-static void Matrix_matrix_size(const void *_self, unsigned int *rows, unsigned int *columns)
+static void Matrix_get_size(const void *_self, va_list *ap)
 {
 	const struct Matrix *self = cast(Matrix(), _self);
+
+	size_t *rows = va_arg(*ap, size_t*);
+	size_t *columns = va_arg(*ap, size_t*);
 
 	*rows = self->rows;
 	*columns = self->columns;
@@ -696,7 +723,7 @@ static void Matrix_slow_determinant(void *_self, void **retval)
 	if (self->changed == 1 || self->determinant == NULL)
 	{
 		if (self->rows != self->columns)
-			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
+			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%lu, %lu)",
 					self->rows, self->columns);
 
 		var result = NULL;
@@ -715,7 +742,7 @@ static void Matrix_slow_determinant(void *_self, void **retval)
 		}
 		else
 		{
-			for (unsigned int j = 0; j < self->columns; j++)
+			for (size_t j = 0; j < self->columns; j++)
 			{
 				var res;
 				smart var minor = Matrix_minorOf(_self, 0, j);
@@ -769,10 +796,11 @@ static void Matrix_fast_determinant(void *_self, void **retval)
 	if (self->changed == 1 || self->determinant == NULL)
 	{
 		if (self->rows != self->columns)
-			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%u, %u)",
+			throw(MatrixException(), "Error: Can't get determinant of not square matrix! (%lu, %lu)",
 					self->rows, self->columns);
 
-		var result = NULL;
+		var result = new(self->type);
+		set_to_one(result);
 
 		if (self->rows == 1 && self->columns == 1)
 		{
@@ -788,7 +816,69 @@ static void Matrix_fast_determinant(void *_self, void **retval)
 		}
 		else
 		{
-			
+			for (size_t i = 0; i < self->rows; ++i) 
+			{
+				int k = i;
+
+				for (size_t j = i + 1; j < self->rows; ++j) 
+				{
+					smart var abs1 = absolute(self->mass[j][i]);
+					smart var abs2 = absolute(self->mass[k][i]);
+
+					if (cmp(abs1, abs2) > 0)
+					{
+						k = j;
+					}
+				}
+
+				smart var tmp1 = absolute(self->mass[k][i]);
+				if (cmp_to_zero(tmp1) == 0)
+				{
+					result = new(self->type);
+					set_to_zero(result);
+					break;
+				}
+
+				if (k != i)
+				{
+					void **tmp2 = self->mass[i];
+					self->mass[i] = self->mass[k];
+					self->mass[k] = tmp2;
+
+					inverse_add(result);
+				}
+
+				smart var prod1 = product(result, self->mass[i][i]);
+				delete(result);
+				result = retain(prod1);
+
+				for (size_t j = i + 1; j < self->columns; ++j)
+				{
+					smart var div = divide(self->mass[i][j], self->mass[i][i]);
+					delete(self->mass[i][j]);
+					self->mass[i][j] = retain(div);
+				}
+
+				set_to_one(self->mass[i][i]);
+
+				for (size_t j = i + 1; j < self->rows; ++j) 
+				{
+					smart var tmp2 = absolute(self->mass[j][i]);
+					if (cmp_to_zero(tmp2) > 0)
+					{
+						smart var tmp3 = copy(self->mass[j][i]);
+
+						for (size_t l = i; l < self->columns; ++l) 
+						{
+							smart var div = divide(tmp3, self->mass[i][i]);
+							smart var prod2 = product(div, self->mass[i][l]);
+							smart var sub = subtract(self->mass[j][l], prod2);
+							delete(self->mass[j][l]);
+							self->mass[j][l] = retain(sub);
+						}
+					}
+				}
+			}
 		}
 
 		self->changed = 0;
@@ -809,15 +899,15 @@ static void* Matrix_rnd(void *_self, va_list *ap)
 	else
 	{
 		const void *type = cast(TypeClass(), va_arg(*ap, void*));
-		unsigned int rows = va_arg(*ap, unsigned int);
-		unsigned int columns = va_arg(*ap, unsigned int);
+		size_t rows = va_arg(*ap, size_t);
+		size_t columns = va_arg(*ap, size_t);
 
 		self = new(Matrix(), type, rows, columns);
 	}
 
-	for (unsigned int i = 0; i < self->rows; ++i) 
+	for (size_t i = 0; i < self->rows; ++i) 
 	{
-		for (unsigned int j = 0; j < self->columns; j++) 
+		for (size_t j = 0; j < self->columns; j++) 
 		{
 			va_list ap_copy;
 			va_copy(ap_copy, *ap);
@@ -831,11 +921,10 @@ static void* Matrix_rnd(void *_self, va_list *ap)
 	return self;
 }
 
-/*
- * Initialization
- */
+/* }}} */
 
-// ---
+/* Initialization {{{ */
+
 
 ClassImpl(MatrixClass)
 {
@@ -869,8 +958,9 @@ ClassImpl(Matrix)
 				scmulti, Matrix_scmulti,
 				scdivide, Matrix_scdivide,
 				minorOf, Matrix_minorOf,
-				matrix_size, Matrix_matrix_size,
+				get_size, Matrix_get_size,
 				slow_determinant, Matrix_slow_determinant,
+				fast_determinant, Matrix_fast_determinant,
 				rnd, Matrix_rnd,
 				0);
 	}
@@ -878,11 +968,7 @@ ClassImpl(Matrix)
 	return _Matrix;
 }
 
-/*
- * Exception Initialization
- */
-
-// ---
+/* Exception init */
 
 ObjectImpl(MatrixException)
 {
@@ -893,3 +979,5 @@ ObjectImpl(MatrixException)
 
 	return _MatrixException;
 }
+
+/* }}} */

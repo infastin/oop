@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -10,9 +12,7 @@
 #include "Selectors.h"
 #include "ExceptionObject.h"
 
-/*
- * Object
- */
+/* Object {{{ */
 
 static void* Object_ctor(void *_self, va_list *ap)
 {
@@ -29,9 +29,9 @@ static void* Object_cpy(const void *_self, void *_object)
 	return _object;
 }
 
-/*
- * Object selectors
- */
+/* }}} */
+
+/* Type checking and sizeOf {{{ */
 
 const void* _isObject(char *selfname, char *file, int line, const char *func,
 		const void *_self)
@@ -170,9 +170,9 @@ int _isOf(char *selfname, char *file, int line, const char *func,
 	return 0;
 }
 
-/*
- * Class
- */
+/* }}} */
+
+/* Class {{{ */
 
 static void* Class_ctor(void *_self, va_list *ap)
 {
@@ -233,9 +233,9 @@ static void* Class_cpy(const void *_self, void *_object)
 	return 0;
 }
 
-/*
- *	Initialization
- */
+/* }}} */
+
+/* Static Initialization {{{ */
 
 static const struct Class _Object;
 static const struct Class _Class;
@@ -269,9 +269,10 @@ const void* const Class(void)
 	return &_Class;
 }
 
-/*
- * Exceptions
- */
+/* }}} */
+
+/* Exceptions {{{ */
+
 ObjectImpl(FormatException)
 {
 	if (!_FormatException)
@@ -281,3 +282,5 @@ ObjectImpl(FormatException)
 
 	return _FormatException;
 }
+
+/* }}} */

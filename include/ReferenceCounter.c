@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -7,9 +9,7 @@
 #include "Object.h"
 #include "Selectors.h"
 
-/*
- * Logging
- */
+/* Logging {{{ */
 
 #if defined (LOGGING)
 static FILE *ref_log = NULL;
@@ -39,9 +39,9 @@ void reflog(char *fmt, ...)
 void reflog(char *fmt, ...) {};
 #endif
 
-/*
- * ReferenceCounter
- */
+/* }}} */
+
+/* Reference counter {{{1 */
 
 __attribute__ ((always_inline))
 inline void release(void *_self_ptr) 
@@ -112,3 +112,5 @@ void* retain(void *_self)
 
 	return _self;
 }
+
+/* }}} */

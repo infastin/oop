@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +8,8 @@
 #include "ExceptionObject.h"
 #include "Selectors.h"
 #include "Exception.h"
+
+/* Any {{{ */
 
 static void* Any_ctor(void *_self, va_list *ap)
 {
@@ -36,7 +40,7 @@ static void* Any_ctor(void *_self, va_list *ap)
 
 static void* Any_cpy(const void *_self, void *_object)
 {
-	const struct Any *self = _self;
+	const struct Any *self = cast(Any(), _self);
 	struct Any *object = super_cpy(Any(), _self, _object);
 
 	object->size = self->size;
@@ -73,19 +77,17 @@ static void Any_set(void *_self, va_list *ap)
 		memcpy(self->data, data, self->size);
 }
 
-static void Any_get(void *_self, va_list *ap)
+static void Any_get(const void *_self, va_list *ap)
 {
-	struct Any *self = cast(Any(), _self);
+	const struct Any *self = cast(Any(), _self);
 
 	void *retval = va_arg(*ap, void*);
 	memcpy(retval, self->data, self->size);
 }
 
-/*
- * Initialization
- */
+/* }}} */
 
-// ---
+/* Initialization {{{ */
 
 ClassImpl(Any)
 {
@@ -104,9 +106,7 @@ ClassImpl(Any)
 	return _Any;
 }
 
-/*
- * Exception Initialization
- */
+/* Exception init */
 
 ObjectImpl(AnyException)
 {
@@ -117,3 +117,5 @@ ObjectImpl(AnyException)
 
 	return _AnyException;
 }
+
+/* }}} */

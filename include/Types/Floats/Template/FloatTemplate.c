@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,18 +11,16 @@
 #include "Selectors.h"
 #include "FloatTemplate.h"
 
-/*
- * Methods
- */
+/* Public methods {{{ */
 
 static void* TEMPLATE(N, ctor)(void *_self, va_list *ap)
 {
 	struct N *self = super_ctor(N(), _self, ap);
 
-#if defined (FLOAT_FLOAT)
-	self->value = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	self->value = va_arg(*ap, T);
+#else
+	self->value = (T) va_arg(*ap, double);
 #endif
 
 	return self;
@@ -28,14 +28,14 @@ static void* TEMPLATE(N, ctor)(void *_self, va_list *ap)
 
 static void* TEMPLATE(N, cpy)(const void *_self, void *_object)
 {
-	const struct N *self = _self;
+	const struct N *self = cast(N(), _self);
 	struct N *obj = super_cpy(N(), _self, _object);
 
 	obj->value = self->value;
 	return obj;
 }
 
-static int TEMPLATE(N, cmp)(const void *_self, const void *b)
+static int TEMPLATE(N, cmp)(const void *_self, const void *b, va_list *ap)
 {
 	const struct N *self = cast(N(), _self);
 	const struct N *B = cast(N(), b);
@@ -46,6 +46,30 @@ static int TEMPLATE(N, cmp)(const void *_self, const void *b)
 		return -1;
 	else
 		return 0;
+}
+
+static int TEMPLATE(N, cmp_to_zero)(const void *_self)
+{
+	const struct N *self = cast(N(), _self);
+
+	if (self->value > 1E-9)
+		return 1;
+	else if (self->value < 0)
+		return -1;
+
+	return 0;
+}
+
+static void TEMPLATE(N, set_to_zero)(void *_self)
+{
+	struct N *self = cast(N(), _self);
+	self->value = 0;
+}
+
+static void TEMPLATE(N, set_to_one)(void *_self)
+{
+	struct N *self = cast(N(), _self);
+	self->value = 1;
 }
 
 static void TEMPLATE(N, swap)(void *_self, void *b)
@@ -62,16 +86,16 @@ static void TEMPLATE(N, set)(void *_self, va_list *ap)
 {
 	struct N *self = cast(N(), _self);
 
-#if defined (FLOAT_FLOAT)
-	self->value = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	self->value = va_arg(*ap, T);
+#else
+	self->value = (T) va_arg(*ap, double);
 #endif
 }
 
-static void TEMPLATE(N, get)(void *_self, va_list *ap)
+static void TEMPLATE(N, get)(const void *_self, va_list *ap)
 {
-	struct N *self = cast(N(), _self);
+	const struct N *self = cast(N(), _self);
 
 	T *val = va_arg(*ap, T*);
 	*val = self->value;
@@ -214,10 +238,10 @@ static void TEMPLATE(N, scadd)(void *_self, va_list *ap)
 {
 	struct N *self = cast(N(), _self);
 
-#if defined (FLOAT_FLOAT)
-	T sc = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	T sc = va_arg(*ap, T);
+#else
+	T sc = (T) va_arg(*ap, double);
 #endif
 
 	self->value += sc;
@@ -227,11 +251,11 @@ static void TEMPLATE(N, scsub)(void *_self, va_list *ap)
 {
 	struct N *self = cast(N(), _self);
 
-#if defined (FLOAT_FLOAT)
-	T sc = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	T sc = va_arg(*ap, T);
-#endif	
+#else
+	T sc = (T) va_arg(*ap, double);
+#endif
 
 	self->value -= sc;
 }
@@ -240,11 +264,11 @@ static void TEMPLATE(N, scmulti)(void *_self, va_list *ap)
 {
 	struct N *self = cast(N(), _self);
 
-#if defined (FLOAT_FLOAT)
-	T sc = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	T sc = va_arg(*ap, T);
-#endif	
+#else
+	T sc = (T) va_arg(*ap, double);
+#endif
 
 	self->value *= sc;
 }
@@ -253,31 +277,27 @@ static void TEMPLATE(N, scdivide)(void *_self, va_list *ap)
 {
 	struct N *self = cast(N(), _self);
 
-#if defined (FLOAT_FLOAT)
-	T sc = va_arg(*ap, double);
-#else
+#if !defined(FLOAT_FLOAT)
 	T sc = va_arg(*ap, T);
-#endif	
+#else
+	T sc = (T) va_arg(*ap, double);
+#endif
 
 	self->value /= sc;
 }
 
-static void* TEMPLATE(N, inverse_add)(void *_self)
+static void* TEMPLATE(N, inverse_add)(const void *_self)
 {
 	struct N *obj = cast(N(), copy(_self));
-	scmulti(obj, (T) -1);
+	obj->value *= -1;
 
 	return obj;
 }
 
-static void* TEMPLATE(N, inverse_multi)(void *_self)
+static void* TEMPLATE(N, inverse_multi)(const void *_self)
 {
 	struct N *obj = cast(N(), copy(_self));
-
-	double val;
-	get(obj, &val);
-	val = 1 / val;
-	set(obj, val);
+	obj->value = 1 / obj->value;
 
 	return obj;
 }
@@ -289,33 +309,47 @@ static void* TEMPLATE(N, rnd)(void *_self, va_list *ap)
 	if (_self)
 		self = cast(N(), _self);
 	else
-		self = new(N(), (double) 0.00);
+		self = new(N(), (T) 0.00);
 
-	unsigned int max = va_arg(*ap, unsigned int);
+#if !defined(FLOAT_FLOAT)
+	T max = va_arg(*ap, T);
+#else
+	T max = (T) va_arg(*ap, double);
+#endif
+
 	int negative = va_arg(*ap, int);
 
-	double random = ((double) rand() / (double) RAND_MAX);
+	T random = ((T) rand() / (T) RAND_MAX);
 
 	if (negative == 1)
-		random -= ((double) rand() / (double) RAND_MAX);
+		random -= ((T) rand() / (T) RAND_MAX);
 
 	if (max == 0)
 		random *= rand();
 	else
 		random *= max;
 
-	if (random == (double) max)
-		random *= ((double) rand() / (double) RAND_MAX);
+	if (random == (T) max)
+		random *= ((T) rand() / (T) RAND_MAX);
 
 	self->value = random;
 
 	return self;
 }
 
+static void* TEMPLATE(N, absolute)(const void *_self)
+{
+	struct N *obj = cast(N(), copy(_self));
 
-/*
- * Initialization
- */
+	if (obj->value < 0)
+		obj->value *= -1;
+
+	return obj;
+}
+
+/* }}} */
+
+/* Initialization {{{ */
 
 ClassImpl(N)
 {
@@ -328,6 +362,7 @@ ClassImpl(N)
 				set, TEMPLATE(N, set),
 				get, TEMPLATE(N, get),
 				cmp, TEMPLATE(N, cmp),
+				cmp_to_zero, TEMPLATE(N, cmp_to_zero),
 				swap, TEMPLATE(N, swap),
 				sfprint, TEMPLATE(N, sfprint),
 				sfscan, TEMPLATE(N, sfscan),
@@ -342,9 +377,13 @@ ClassImpl(N)
 				inverse_add, TEMPLATE(N, inverse_add),
 				inverse_multi, TEMPLATE(N, inverse_multi),
 				rnd, TEMPLATE(N, rnd),
+				absolute, TEMPLATE(N, absolute),
+				set_to_zero, TEMPLATE(N, set_to_zero),
+				set_to_one, TEMPLATE(N, set_to_one),
 				0);
 	}
 
 	return PRIVATE(N);
 }
 
+/* }}} */

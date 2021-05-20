@@ -1,12 +1,16 @@
+/* vim: set fdm=marker : */
+
 #include "ScalarOperatorsInterface.h"
 #include "Selectors.h"
 #include "Object.h"
 #include "Exception.h"
 
+/* Selectors {{{ */
+
 void scadd(void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scadd.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scadd' method of 'ScalarOperatorsInterface'!",
@@ -21,7 +25,7 @@ void scadd(void *_self, ...)
 void vscadd(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scadd.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scadd' method of 'ScalarOperatorsInterface'!",
@@ -36,7 +40,7 @@ void vscadd(void *_self, va_list *ap)
 void scsub(void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scsub.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scsub' method of 'ScalarOperatorsInterface'!",
@@ -53,7 +57,7 @@ void scsub(void *_self, ...)
 void vscsub(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scsub.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scsub' method of 'ScalarOperatorsInterface'!",
@@ -68,7 +72,7 @@ void vscsub(void *_self, va_list *ap)
 void scmulti(void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scmulti.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scmulti' method of 'ScalarOperatorsInterface'!",
@@ -85,7 +89,7 @@ void scmulti(void *_self, ...)
 void vscmulti(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scmulti.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scmulti' method of 'ScalarOperatorsInterface'!",
@@ -100,7 +104,7 @@ void vscmulti(void *_self, va_list *ap)
 void scdivide(void *_self, ...)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scdivide.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scdivide' method of 'ScalarOperatorsInterface'!",
@@ -117,7 +121,7 @@ void scdivide(void *_self, ...)
 void vscdivide(void *_self, va_list *ap)
 {
 	const struct Class *class = classOf(_self);
-	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, _self);
+	const struct ScalarOperatorsInterface *sc = icast(ScalarOperatorsInterface, class);
 
 	if (sc->scdivide.method == NULL)
 		throw(ScalarOperatorsException(), "Error: Class '%s' doesn't implement 'scdivide' method of 'ScalarOperatorsInterface'!",
@@ -128,9 +132,9 @@ void vscdivide(void *_self, va_list *ap)
 	((scdivide_f) sc->scdivide.method)(_self, ap);
 }
 
-/*
- * Interface Initialization
- */
+/* }}} */
+
+/* Initialization {{{ */
 
 InterfaceImpl(ScalarOperatorsInterface)
 {
@@ -146,9 +150,7 @@ InterfaceImpl(ScalarOperatorsInterface)
 	return _ScalarOperatorsInterface;
 }
 
-/*
- * Exception Initialization
- */
+/* Exception init */
 
 ObjectImpl(ScalarOperatorsException)
 {
@@ -159,3 +161,5 @@ ObjectImpl(ScalarOperatorsException)
 
 	return _ScalarOperatorsException;
 }
+
+/* }}} */

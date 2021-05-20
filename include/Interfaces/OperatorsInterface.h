@@ -1,6 +1,7 @@
 #ifndef OPERATORSINTERFACE_H_KIQ3RKDS
 #define OPERATORSINTERFACE_H_KIQ3RKDS
 
+#include "Interface.h"
 #include "Macro.h"
 #include "Object.h"
 
@@ -20,14 +21,14 @@ struct OperatorsInterface
 	method rshift;
 };
 
-void* sum(const void *self, const void *b);
-void* subtract(const void *self, const void *b);
-void* product(const void *self, const void *b);
-void* divide(const void *self, const void *b);
-void* modulo(const void *self, const void *b);
+interface_sel_header(void*, sum, const void *self, const void *b);
+interface_sel_header(void*, subtract, const void *self, const void *b);
+interface_sel_header(void*, product, const void *self, const void *b);
+interface_sel_header(void*, divide, const void *self, const void *b);
+interface_sel_header(void*, modulo, const void *self, const void *b);
 
-void onecompl(void *_self);
-void lshift(void *_self, size_t shift);
-void rshift(void *_self, size_t shift);
+interface_sel_header(void, onecompl, void *self);
+interface_sel_header(void, lshift, void *self, size_t shift);
+interface_sel_header(void, rshift, void *self, size_t shift);
 
 #endif /* end of include guard: OPERATORSINTERFACE_H_KIQ3RKDS */

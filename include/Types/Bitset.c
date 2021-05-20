@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,11 +12,9 @@
 #include "Selectors.h"
 #include "ReferenceCounter.h"
 
-#define BYTES(bits) (((bits) + CHAR_BIT - 1) / CHAR_BIT)
+/* Private methods and macros {{{ */
 
-/*
- * Private methods and macros
- */
+#define BYTES(bits) (((bits) + CHAR_BIT - 1) / CHAR_BIT)
 
 static void Bitset_add(void *_self, size_t bit, int value)
 {
@@ -71,9 +71,9 @@ static void Bitset_fixlen(void *_self)
 	}
 }
 
-/*
- * Methods
- */
+/* }}} */
+
+/* Public methods {{{ */
 
 static void* Bitset_ctor(void *_self, va_list *ap)
 {
@@ -111,7 +111,7 @@ static void* Bitset_dtor(void *_self)
 
 static void* Bitset_cpy(const void *_self, void *_object)
 {
-	const struct Bitset *self = _self;
+	const struct Bitset *self = cast(Bitset(), _self);
 	struct Bitset *object = super_cpy(Bitset(), _self, _object);
 
 	object->capacity = self->capacity;
@@ -260,7 +260,7 @@ static int Bitset_sfprint(const void *_self, FILE *stream, int bin, char *buffer
 	return size;
 }
 
-static int Bitset_cmp(const void *_self, const void *b)
+static int Bitset_cmp(const void *_self, const void *b, va_list *ap)
 {
 	const struct Bitset *self = cast(Bitset(), _self);
 	const struct Bitset *B = cast(Bitset(), b);
@@ -353,7 +353,7 @@ static void* Bitset_sum(const void *_self, const void *b)
 
 	const struct Bitset *higher, *lower;
 
-	if (Bitset_cmp(self, b) > 0)
+	if (Bitset_cmp(self, b, NULL) > 0)
 	{
 		higher = self;
 		lower = B;
@@ -385,7 +385,7 @@ static void* Bitset_subtract(const void *_self, const void *b)
 
 	int invert = 0;
 
-	if (Bitset_cmp(self, B) >= 0)
+	if (Bitset_cmp(self, B, NULL) >= 0)
 	{
 		higher = self;
 		lower = B;
@@ -563,7 +563,7 @@ static void* Bitset_product(const void *_self, const void *b)
 
 	const struct Bitset *higher, *lower;
 
-	if (Bitset_cmp(self, B) > 0)
+	if (Bitset_cmp(self, B, NULL) > 0)
 	{
 		higher = self;
 		lower = B;
@@ -701,11 +701,9 @@ static void* Bitset_modulo(const void *_self, const void *b)
 	return remainder;
 }
 
-/*
- * Selectors
- */
+/* }}} */
 
-// ---
+/* Selectors {{{ */
 
 void bitset_grow(void *_self, size_t numb)
 {
@@ -762,11 +760,9 @@ size_t bitset_length(void *_self)
 	return self->length;
 }
 
-/*
- * Initialization
- */
+/* }}} */
 
-// ---
+/* Initialization {{{ */
 
 ClassImpl(Bitset)
 {
@@ -797,11 +793,7 @@ ClassImpl(Bitset)
 	return _Bitset;
 }
 
-/*
- * Exception Initialization
- */
-
-// ---
+/* Exception init */
 
 ObjectImpl(BitsetException)
 {
@@ -812,3 +804,5 @@ ObjectImpl(BitsetException)
 
 	return _BitsetException;
 }
+
+/* }}} */

@@ -5,6 +5,7 @@
 #include "Object.h"
 
 InterfaceHeader(IOInterface);
+ObjectHeader(IOException);
 
 struct IOInterface
 {

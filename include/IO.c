@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -5,27 +7,26 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#include "GenericType.h"
 #include "IO.h"
 #include "IntTypes.h"
 #include "Exception.h"
+#include "List.h"
 #include "Matrix.h"
 #include "FloatTypes.h"
 #include "Selectors.h"
 #include "Utils.h"
+#include "String.h"
 
-/*
- * Helpers
- */
+/* Helpers {{{ */
 
-// ---
-
-char* __varg_string(int n)
+char* __n_string(int n, char *str)
 {
 	char *spelling = int_spelling(n);
 
-	int res_len = snprintf(NULL, 0, "%d%s variable", n, spelling);
+	int res_len = snprintf(NULL, 0, "%d%s %s", n, spelling, str);
 	char *result = (char*)calloc(sizeof(char), res_len + 1);
-	snprintf(result, res_len + 1, "%d%s variable", n, spelling);
+	snprintf(result, res_len + 1, "%d%s %s", n, spelling, str);
 
 	return result;
 }
@@ -61,11 +62,9 @@ int __strtoint(char *file, int line, const char *func,
 	return result;
 }
 
-/*
- * Print to stream
- */
+/* }}} */
 
-// ---
+/* Print to stream {{{1 */
 
 int _ovfprintf(char *file, int line, const char *func, 
 		FILE *stream, const char *fmt, va_list *ap)
@@ -174,7 +173,7 @@ int _ovfprintf(char *file, int line, const char *func,
 			}
 
 			// For error printing
-			char *varg_str = __varg_string(va_args_count);
+			char *varg_str = __n_string(va_args_count, "variable");
 
 			// Printing
 			const void *type = NULL;
@@ -193,6 +192,10 @@ int _ovfprintf(char *file, int line, const char *func,
 				case 'm':
 					type = Matrix();
 					type_str = "Matrix()";
+					break;
+				case 's':
+					type = String();
+					type_str = "String()";
 					break;
 				case 'v':
 					type = Object();
@@ -268,11 +271,9 @@ int oprintln(const void *_self)
 	return result;
 }
 
-/*
- * Binary print
- */
+/* }}} */
 
-// ---
+/* Binary print {{{ */
 
 int ofwrite(const void *self, FILE *stream)
 {
@@ -284,12 +285,9 @@ int owrite(const void *self)
 	return sfprint(self, stdout, 1, NULL, 0, -1, -1, -1);
 }
 
+/* }}} */
 
-/*
- * Scan from stream
- */
-
-// ---
+/* Scan from stream {{{ */
 
 int _ovfscanf(char *file, int line, const char *func, 
 		FILE* stream, const char *fmt, va_list *ap)
@@ -307,6 +305,8 @@ int _ovfscanf(char *file, int line, const char *func,
 
 	int result = 0;
 	int c = ~EOF;
+
+	var args = new(List(), GenericType());
 
 	for(p = fmt; *p && c != EOF; p++)
 	{
@@ -328,6 +328,7 @@ int _ovfscanf(char *file, int line, const char *func,
 				asterisk = '*';
 				p++;
 			}
+
 
 			// Check width
 			if (isdigit(*p))
@@ -357,7 +358,7 @@ int _ovfscanf(char *file, int line, const char *func,
 			}
 
 			// For error printing
-			char *varg_str = __varg_string(va_args_count);
+			char *varg_str = __n_string(va_args_count, "variable");
 
 			// Scanning
 			const void *type = NULL;
@@ -376,6 +377,10 @@ int _ovfscanf(char *file, int line, const char *func,
 				case 'm':
 					type = Matrix();
 					type_str = "Matrix()";
+					break;
+				case 's':
+					type = String();
+					type_str = "String()";
 					break;
 				case 'v':
 					type = Object();
@@ -433,7 +438,7 @@ int _oscanf(char *file, int line, const char *func,
 }
 
 /*
- * Scan for string
+ * Scan from string
  */
 
 // ---
@@ -503,7 +508,7 @@ int _ovsscanf(char *file, int line, const char *func,
 			}
 
 			// For error printing
-			char *varg_str = __varg_string(va_args_count);
+			char *varg_str = __n_string(va_args_count, "variable");
 			
 			// Scanning
 			const void *type = NULL;
@@ -523,6 +528,10 @@ int _ovsscanf(char *file, int line, const char *func,
 					type = Matrix();
 					type_str = "Matrix()";
 					break;
+				case 's':
+					type = String();
+					type_str = "String()";
+					break;
 				case 'v':
 					type = Object();
 					type_str = "Object()";
@@ -541,7 +550,7 @@ int _ovsscanf(char *file, int line, const char *func,
 				if (res != -1)
 				{
 					result += res;
-					s+= n;
+					s += n;
 				}
 			}
 
@@ -571,11 +580,9 @@ int _osscanf(char *file, int line, const char *func, const char *buffer, const c
 	return result;
 }
 
-/*
- * Binary scan
- */
+/* }}} */
 
-// ---
+/* Binary scan {{{ */
 
 int ofread(void *self, FILE *stream)
 {
@@ -587,18 +594,4 @@ int oread(void *self)
 	return sfscan(self, stdin, 1, NULL, NULL, -1, -1);
 }
 
-/*
- * Exception Initialization
- */
-
-// ---
-
-ObjectImpl(IOException)
-{
-	if (!_IOException)
-	{
-		_IOException = new(ExceptionObject(), "IOException");
-	}
-
-	return _IOException;
-}
+/* }}} */

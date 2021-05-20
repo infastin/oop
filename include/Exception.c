@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -5,20 +7,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <execinfo.h>
+#include <stdbool.h>
 
 #include "Exception.h"
 #include "Object.h"
 #include "Selectors.h"
 
-/*
- * Methods
- */
+/* Public methods {{{ */
 
 static void* Exception_ctor(void *_self, va_list *ap)
 {
 	struct Exception *self = super_ctor(Exception(), _self, ap);
 
-	self->active = 0;
+	self->active = false;
 	self->depth = 0;
 	self->obj = NULL;
 	memset(self->buffers, 0, sizeof(jmp_buf*) * EXCEPTION_MAX_DEPTH);
@@ -26,9 +27,9 @@ static void* Exception_ctor(void *_self, va_list *ap)
 	return self;
 }
 
-/*
- * Private methods
- */
+/* }}} */
+
+/* Private methods {{{ */
 
 static jmp_buf* Exception_buffer(struct Exception *self)
 {
@@ -179,9 +180,9 @@ static void Exception_error(struct Exception *self)
 	exit(EXIT_FAILURE);
 }
 
-/*
- * Exception `selectors`
- */
+/* }}} */
+
+/* Exception "selectors" {{{ */
 
 const void* exception_catch(void *_self, ...)
 {
@@ -260,7 +261,7 @@ void exception_try(void *_self, jmp_buf *env)
 
 	self->buffers[self->depth] = env;
 	self->depth++;
-	self->active = 0;
+	self->active = false;
 }
 
 void exception_try_end(void *_self)
@@ -279,12 +280,12 @@ void exception_try_end(void *_self)
 void exception_try_fail(void *_self)
 {
 	struct Exception *self = cast(Exception(), _self);
-	self->active = 1;
+	self->active = true;
 }
 
-/*
- * Initialization
- */
+/* }}} */
+
+/* Initialization {{{ */
 
 ClassImpl(Exception)
 {
@@ -308,3 +309,5 @@ ObjectImpl(GlobalException)
 
 	return _GlobalException;
 }
+
+/* }}} */

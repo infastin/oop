@@ -27,4 +27,30 @@ const void* _isInterface(char *intername, char *file, int line, const char *func
 
 #define icast(interface, self) _icast_stack(interface(), self, (char[sizeof(struct interface)]){0})
 
+#define interface_sel(r, m, i, v, b, ...) \
+	r m(__VA_ARGS__) \
+{ \
+	const struct Class *class = classOf(_self); \
+	const struct i ## Interface *v = icast(i ## Interface, class); \
+	\
+	if (v->m.method == NULL) \
+	throw(i ## Exception(), "Error: Class '%s' doesn't implement '" #m "' method of '" #i "Interface'!", \
+			class->name); \
+	b; \
+}\
+r super_ ## m(const void *_class, __VA_ARGS__) \
+{ \
+	const struct Class *superclass = super(_class); \
+	const struct i ## Interface *v = icast(i ## Interface, superclass); \
+	\
+	if (v->m.method == NULL) \
+	throw(i ## Exception(), "Error: Class '%s' doesn't implement '" #m "' method of '" #i "Interface'!", \
+			superclass->name); \
+	b; \
+}
+
+#define interface_sel_header(r, m, ...) \
+r m(__VA_ARGS__); \
+r super_ ## m(const void *class, __VA_ARGS__);
+
 #endif /* end of include guard: INTERFACE_H_RAPMB3IV */

@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +8,8 @@
 
 #include "Interface.h"
 #include "Macro.h"
+
+/* Type checking {{{ */
 
 const void* _isInterface(char *intername, char *file, int line, const char *func,
 		const void *_interface)
@@ -44,8 +48,8 @@ static void sigcatch(int signal)
 	}
 }
 
-void* _icast(char *intername, char *selfname, char *file, int line, const char *func,
-		const void *_interface, const void *_self, void *_casted)
+void* _icast(char *intername, char *classname, char *file, int line, const char *func,
+		const void *_interface, const void *_class, void *_casted)
 {
 	void (*sigsegv)(int) = signal(SIGSEGV, sigcatch);
 #ifdef SIGBUS
@@ -60,13 +64,12 @@ void* _icast(char *intername, char *selfname, char *file, int line, const char *
 	}
 
 	const struct Interface *interface = _isInterface(intername, file, line, func, _interface);
-	const struct Object *self = _cast("Object()", selfname, file, line, func, Object(), _self);
-	const struct Class *class = self->class;
+	const struct Class *class = _cast("Class()", classname, file, line, func, Class(), _class);
 
 	if (sizeOf(class) <= (offsetof(struct Class, get)) + sizeof(method))
 	{
-		fprintf(stderr, "%s:%d: %s: Error: Class '%s' of object '%s' doesn't implement interface '%s'!",
-				file, line, func, class->name, selfname, intername);
+		fprintf(stderr, "%s:%d: %s: Error: Class '%s' doesn't implement interface '%s'!",
+				file, line, func, class->name, intername);
 		exit(EXIT_FAILURE);
 	}
 
@@ -86,7 +89,7 @@ void* _icast(char *intername, char *selfname, char *file, int line, const char *
 	method* casted = _casted;
 	method* c = casted;
 
-	while ((void*) class_method != (void*) ((char*) class + sizeOf(class) - sizeof(method)))
+	while ((void*) class_method < (void*) ((char*) class + sizeOf(class)))
 	{
 		for (int i = 0; i < method_sels_nb; ++i) 
 		{
@@ -113,8 +116,8 @@ void* _icast(char *intername, char *selfname, char *file, int line, const char *
 
 	if (method_sels_nb != 0)
 	{
-		fprintf(stderr, "%s:%d: %s: Error: Class '%s' of object '%s' doesn't implement interface '%s'!",
-				file, line, func, class->name, selfname, intername);
+		fprintf(stderr, "%s:%d: %s: Error: Class '%s' doesn't implement interface '%s'!",
+				file, line, func, class->name, intername);
 		exit(EXIT_FAILURE);
 	}
 
@@ -125,3 +128,5 @@ void* _icast(char *intername, char *selfname, char *file, int line, const char *
 
 	return (void*) casted;
 }
+
+/* }}} */

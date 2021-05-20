@@ -1,9 +1,16 @@
+/* vim: set fdm=marker : */
+
 #include <stdlib.h>
 
+#include "Exception.h"
+#include "ExceptionObject.h"
+#include "IO.h"
 #include "IOInterface.h"
 #include "Macro.h"
 #include "Object.h"
 #include "Selectors.h"
+
+/* "Private" functions {{{ */
 
 char* __getFmtPrint(int flag, int width, int precision, char *spec)
 {
@@ -114,18 +121,19 @@ char* __getFmtScan(int asterisk, int width, char *spec)
 	return fmt;
 }
 
+/* }}} */
+
+/* Selectors {{{ */
+
 int sfprint(const void *_self, FILE *stream, int bin, char *buffer, size_t maxn, 
 		int flag, int width, int precision)
 {
 	const struct Class *class = classOf(_self);
-	const struct IOInterface *io = icast(IOInterface, _self);
+	const struct IOInterface *io = icast(IOInterface, class);
 
 	if (io->sfprint.method == NULL)
-	{
-		fprintf(stderr, "sfprint: Error: Class '%s' doesn't implement 'sfprint' method of 'IOInterface'!\n",
+		throw(IOException(), "Error: Class '%s' doesn't implement 'sfprint' method of 'IOInterface'!",
 				class->name);
-		exit(EXIT_FAILURE);
-	}
 
 	typedef int   (*sfprint_f)(const void *self, FILE *stream, int bin, char *buffer, size_t maxn, 
 			int flag, int width, int precision);
@@ -137,14 +145,12 @@ int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
 		int asterisk, int width)
 {
 	const struct Class *class = classOf(_self);
-	const struct IOInterface *io = icast(IOInterface, _self);
+	const struct IOInterface *io = icast(IOInterface, class);
 
-	if (io->sfscan.method == NULL) 
-	{
-		fprintf(stderr, "sfscan: Error: Class '%s' doesn't implement 'sfscan' method of 'IOInterface'!\n",
+	if (io->sfscan.method == NULL)
+		throw(IOException(), "Error: Class '%s' doesn't implement 'sfscan' method of 'IOInterface'!",
 				class->name);
-		exit(EXIT_FAILURE);
-	}
+
 
 	typedef int   (*sfscan_f)(void *self, FILE *stream, int bin, const char *buffer, int *numb, 
 			int asterisk, int width);
@@ -152,9 +158,9 @@ int sfscan(void *_self, FILE *stream, int bin, const char *buffer, int *numb,
 	return ((sfscan_f) io->sfscan.method)(_self, stream, bin, buffer, numb, asterisk, width);
 }
 
-/*
- * Initialization
- */
+/* }}} */
+
+/* Initialization {{{ */
 
 InterfaceImpl(IOInterface)
 {
@@ -167,3 +173,17 @@ InterfaceImpl(IOInterface)
 
 	return _IOInterface;
 }
+
+/* Exception init */
+
+ObjectImpl(IOException)
+{
+	if (!_IOException)
+	{
+		_IOException = new(ExceptionObject(), "IOException");
+	}
+
+	return _IOException;
+}
+
+/* }}} */

@@ -1,123 +1,81 @@
+/* vim: set fdm=marker : */
+
 #include "OperatorsInterface.h"
+#include "Interface.h"
 #include "Object.h"
 #include "Selectors.h"
 #include "Exception.h"
 
-void* sum(const void *_self, const void *b)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
+/* Selectors {{{ */
 
-	if (oper->sum.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'sum' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void*, sum, Operators, oper, 
+{		
 	typedef void *(*sum_f)(const void *self, const void *b);
-
+	
 	return ((sum_f) oper->sum.method)(_self, b);
-}
+}, 
+const void *_self, const void *b);
 
-void* subtract(const void *_self, const void *b)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->subtract.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'subtract' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void*, subtract, Operators, oper,
+{		
 	typedef void *(*subtract_f)(const void *self, const void *b);
 
 	return ((subtract_f) oper->subtract.method)(_self, b);
-}
+}, 
+const void *_self, const void *b);
 
-void* product(const void *_self, const void *b)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->product.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'product' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void*, product, Operators, oper, 
+{		
 	typedef void *(*product_f)(const void *self, const void *b);
 
 	return ((product_f) oper->product.method)(_self, b);
-}
+}, 
+const void *_self, const void *b);
 
-void* divide(const void *_self, const void *b)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->divide.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'divide' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void*, divide, Operators, oper,
+{		
 	typedef void *(*divide_f)(const void *self, const void *b);
 
 	return ((divide_f) oper->divide.method)(_self, b);
-}
+}, 
+const void *_self, const void *b);
 
-void* modulo(const void *_self, const void *b)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->modulo.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'modulo' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void*, modulo, Operators, oper,
+{		
 	typedef void *(*modulo_f)(const void *self, const void *b);
 
 	return ((modulo_f) oper->modulo.method)(_self, b);
-}
+}, 
+const void *_self, const void *b);
 
-void onecompl(void *_self)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->onecompl.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'onecompl' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void, onecompl, Operators, oper,
+{		
 	typedef void  (*onecompl_f)(void *self);
 
-	return ((onecompl_f) oper->onecompl.method)(_self);
-}
+	((onecompl_f) oper->onecompl.method)(_self);
+}, 
+void *_self);
 
-void lshift(void *_self, size_t shift)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->lshift.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'lshift' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void, lshift, Operators, oper,
+{		
 	typedef void  (*lshift_f)(void *self, size_t shift);
 
 	return ((lshift_f) oper->lshift.method)(_self, shift);
-}
+}, 
+void *_self, size_t shift);
 
-void rshift(void *_self, size_t shift)
-{
-	const struct Class *class = classOf(_self);
-	const struct OperatorsInterface *oper = icast(OperatorsInterface, _self);
-
-	if (oper->rshift.method == NULL)
-		throw(OperatorsException(), "Error: Class '%s' doesn't implement 'rshift' method of 'OperatorsInterface'!",
-				class->name);
-
+interface_sel(void, rshift, Operators, oper,
+{	
 	typedef void  (*rshift_f)(void *self, size_t shift);
 
 	return ((rshift_f) oper->rshift.method)(_self, shift);
-}
+}, 
+void *_self, size_t shift);
 
-/*
- * Interface Initialization
- */
+/* }}} */
+
+/* Initialization {{{ */
+
 InterfaceImpl(OperatorsInterface)
 {
 	if (!_OperatorsInterface)
@@ -136,9 +94,7 @@ InterfaceImpl(OperatorsInterface)
 	return _OperatorsInterface;
 }
 
-/*
- * Exception Initialization
- */
+/* Exception Initialization */
 
 ObjectImpl(OperatorsException)
 {
@@ -149,3 +105,5 @@ ObjectImpl(OperatorsException)
 
 	return _OperatorsException;
 }
+
+/* }}} */

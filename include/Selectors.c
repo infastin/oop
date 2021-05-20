@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -7,11 +9,8 @@
 #include "Object.h"
 #include "Selectors.h"
 
-/*
- * Logging
- */
+/* Logging {{{ */
 
-// ---
 #if defined (LOGGING)
 static FILE *sel_log = NULL;
 
@@ -90,11 +89,9 @@ void selerror(char *fmt, char *file, int line, const char *func, const char *fun
 }
 #endif
 
-/*
-// Create, copy and delete selectors
- */
+/* }}} */
 
-// ---
+/* New, copy and delete selectors {{{ */
 
 void* _new(char *classname, char *file, int line, const char *func, 
 		const void *_class, ...)
@@ -130,7 +127,7 @@ void* _new(char *classname, char *file, int line, const char *func,
 	va_end(ap);
 
 	sellog("Created object of class '%s' with the size of '%lu' bytes.", 
-			file, line, func, "new", class->name, class->size);
+	file, line, func, "new", class->name, class->size);
 
 	return object;
 }
@@ -245,7 +242,6 @@ void* _vnew_stack(char *classname, char *file, int line, const char *func,
 	return object;
 }
 
-
 void _delete(char *selfname, char *file, int line, const char *func,
 		void *_self)
 {
@@ -264,7 +260,6 @@ void _delete(char *selfname, char *file, int line, const char *func,
 				file, line, func, "delete", name, size);
 	}
 }
-
 
 void* _copy(char *selfname, char *file, int line, const char *func,
 		const void *_self)
@@ -306,11 +301,9 @@ void* _copy(char *selfname, char *file, int line, const char *func,
 	return res;
 }
 
-/*
- * Interfaces
- */
+/* }}} */
 
-// --
+/* Interfaces {{{ */
 
 const void* _inew(char *file, int line, const char *func,
 		const char *name, unsigned int extended_nb, unsigned int methods_nb, ...)
@@ -391,11 +384,9 @@ const void* _inew(char *file, int line, const char *func,
 	return interface;
 }
 
-/*
- * Base selectors
- */
+/* }}} */
 
-// ---
+/* Base selectors {{{ */
 
 void* dtor(void *_self)
 {
@@ -517,11 +508,9 @@ void* cpy(const void *_self, void *object)
 	return ((cpy_f) class->cpy.method)(_self, object);
 }
 
-/*
- * Super selectors
- */
+/* }}} */
 
-// ---
+/* Super selectors {{{ */
 
 const void* super(const void *_self)
 {
@@ -586,3 +575,5 @@ void* super_cpy(const void *_class, const void *_self, void *object)
 
 	return ((cpy_f) superclass->cpy.method)(_self, object);
 }
+
+/* }}} */

@@ -35,36 +35,47 @@ set(DIRS
 	${INTTYPES_FOLDER}
 	${FLOATTYPES_FOLDER}
 	${LEAKCHECK_FOLDER}
-	${INTERFACES_FOLDER})
+	${INTERFACES_FOLDER}
+)
 
 add_library(base STATIC
-			${INCLUDE_FOLDER}/Selectors.c 
-			${INCLUDE_FOLDER}/Object.c
-			${INCLUDE_FOLDER}/Interface.c
-			${INCLUDE_FOLDER}/ReferenceCounter.c
-			${INCLUDE_FOLDER}/TypeClass.c
-			${INCLUDE_FOLDER}/Exception.c
-			${INCLUDE_FOLDER}/ExceptionObject.c
-			${INCLUDE_FOLDER}/IO.c
-			${INCLUDE_FOLDER}/Any.c
-			${INCLUDE_FOLDER}/Utils.c)
+	${INCLUDE_FOLDER}/Selectors.c 
+	${INCLUDE_FOLDER}/Object.c
+	${INCLUDE_FOLDER}/Interface.c
+	${INCLUDE_FOLDER}/ReferenceCounter.c
+	${INCLUDE_FOLDER}/TypeClass.c
+	${INCLUDE_FOLDER}/Exception.c
+	${INCLUDE_FOLDER}/ExceptionObject.c
+	${INCLUDE_FOLDER}/IO.c
+	${INCLUDE_FOLDER}/Any.c
+	${INCLUDE_FOLDER}/GenericType.c
+	${INCLUDE_FOLDER}/Utils.c
+	${INCLUDE_FOLDER}/Array.c
+	${INCLUDE_FOLDER}/List.c
+	${INCLUDE_FOLDER}/String.c
+)
 target_link_libraries(base types interfaces)
 
 add_library(interfaces STATIC
-			${INTERFACES_FOLDER}/IOInterface.c
-			${INTERFACES_FOLDER}/ScalarOperatorsInterface.c
-			${INTERFACES_FOLDER}/SortInterface.c
-			${INTERFACES_FOLDER}/OperatorsInterface.c)
+	${INTERFACES_FOLDER}/IOInterface.c
+	${INTERFACES_FOLDER}/ScalarOperatorsInterface.c
+	${INTERFACES_FOLDER}/SortInterface.c
+	${INTERFACES_FOLDER}/OperatorsInterface.c
+	${INTERFACES_FOLDER}/CollectionInterface.c
+
+)
 target_link_libraries(interfaces base)
 
 add_library(leakcheck STATIC
-	${LEAKCHECK_FOLDER}/stb_leakcheck.c)
+	${LEAKCHECK_FOLDER}/stb_leakcheck.c
+)
 
 add_library(types STATIC
-			${TYPES_FOLDER}/Ints/IntTypes.c
-			${TYPES_FOLDER}/Floats/FloatTypes.c
-			${TYPES_FOLDER}/Matrix.c
-			${TYPES_FOLDER}/Bitset.c)
+	${TYPES_FOLDER}/Ints/IntTypes.c
+	${TYPES_FOLDER}/Floats/FloatTypes.c
+	${TYPES_FOLDER}/Matrix.c
+	${TYPES_FOLDER}/Bitset.c
+)
 target_link_libraries(types base interfaces)
 
 target_include_directories(base PUBLIC ${DIRS})

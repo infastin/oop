@@ -9,7 +9,7 @@ char* int_spelling(int value)
 	else if (value % 10 == 2 && value != 12)
 		spelling = "nd";
 	else if (value % 10 == 3 && value != 13)
-		spelling = "td";
+		spelling = "rd";
 	else
 		spelling = "th";
 

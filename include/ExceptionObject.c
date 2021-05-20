@@ -1,12 +1,12 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdlib.h>
 
 #include "ExceptionObject.h"
 #include "Selectors.h"
 
-/*
- * ExceptionObject
- */
+/* ExceptionObject {{{ */
 
 static void* ExceptionObject_ctor(void *_self, va_list *ap)
 {
@@ -30,9 +30,10 @@ static void* ExceptionObject_dtor(void *_self)
 	return super_dtor(ExceptionObject(), _self);
 }
 
-/*
- * Selectors
- */
+/* }}} */
+
+/* Selectors {{{ */
+
 char* exception_message(const void *_self) 
 {
 	const struct ExceptionObject *self = cast(ExceptionObject(), _self);
@@ -68,9 +69,9 @@ int exception_line(const void *_self)
 	return self->line;
 }
 
-/*
- *	Initialization
- */
+/* }}} */
+
+/* Initialization {{{ */
 
 ClassImpl(ExceptionObject)
 {
@@ -85,3 +86,5 @@ ClassImpl(ExceptionObject)
 
 	return _ExceptionObject;
 }
+
+/* }}} */

@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,9 +9,7 @@
 #include "IntTemplate.h"
 #include "Exception.h"
 
-/*
- * Methods
- */
+/* Public methods {{{ */
 
 static void* TEMPLATE(N, ctor)(void *_self, va_list *ap)
 {
@@ -18,7 +18,7 @@ static void* TEMPLATE(N, ctor)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	self->value = va_arg(*ap, T);
 #else
-	self->value = va_arg(*ap, int);
+	self->value = (T) va_arg(*ap, int);
 #endif
 
 	return self;
@@ -26,19 +26,48 @@ static void* TEMPLATE(N, ctor)(void *_self, va_list *ap)
 
 static void* TEMPLATE(N, cpy)(const void *_self, void *_object)
 {
-	const struct N *self = _self;
+	const struct N *self = cast(N(), _self);
 	struct N *obj = super_cpy(N(), _self, _object);
 
 	obj->value = self->value;
 	return obj;
 }
 
-static int TEMPLATE(N, cmp)(const void *_self, const void *b)
+static int TEMPLATE(N, cmp)(const void *_self, const void *b, va_list *ap)
 {
 	const struct N *self = cast(N(), _self);
 	const struct N *B = cast(N(), b);
 
-	return self->value - B->value;
+	if (self->value > B->value)
+		return 1;
+	else if (self->value < B->value)
+		return -1;
+
+	return 0;
+}
+
+static int TEMPLATE(N, cmp_to_zero)(const void *_self)
+{
+	const struct N *self = cast(N(), _self);
+
+	if (self->value > 0)
+		return 1;
+	else if (self->value < 0)
+		return -1;
+
+	return 0;
+}
+
+static void TEMPLATE(N, set_to_zero)(void *_self)
+{
+	struct N *self = cast(N(), _self);
+	self->value = 0;
+}
+
+static void TEMPLATE(N, set_to_one)(void *_self)
+{
+	struct N *self = cast(N(), _self);
+	self->value = 1;
 }
 
 static void TEMPLATE(N, swap)(void *_self, void *b)
@@ -58,13 +87,13 @@ static void TEMPLATE(N, set)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	self->value = va_arg(*ap, T);
 #else
-	self->value = va_arg(*ap, int);
+	self->value = (T) va_arg(*ap, int);
 #endif
 }
 
-static void TEMPLATE(N, get)(void *_self, va_list *ap)
+static void TEMPLATE(N, get)(const void *_self, va_list *ap)
 {
-	struct N *self = cast(N(), _self);
+	const struct N *self = cast(N(), _self);
 
 	T *val = va_arg(*ap, T*);
 	*val = self->value;
@@ -77,7 +106,8 @@ static int TEMPLATE(N, sfprint)(const void *_self, FILE *stream, int bin, char *
 
 	char *fmt = __getFmtPrint(flag, width, precision, "d");
 
-	if (fmt) {
+	if (fmt) 
+	{
 		// Getting result
 		int size;
 		if (stream != NULL)
@@ -210,7 +240,7 @@ static void TEMPLATE(N, scadd)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	T sc = va_arg(*ap, T);
 #else
-	T sc = va_arg(*ap, int);
+	T sc = (T) va_arg(*ap, int);
 #endif
 
 	self->value += sc;
@@ -223,7 +253,7 @@ static void TEMPLATE(N, scsub)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	T sc = va_arg(*ap, T);
 #else
-	T sc = va_arg(*ap, int);
+	T sc = (T) va_arg(*ap, int);
 #endif
 
 	self->value -= sc;
@@ -236,7 +266,7 @@ static void TEMPLATE(N, scmulti)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	T sc = va_arg(*ap, T);
 #else
-	T sc = va_arg(*ap, int);
+	T sc = (T) va_arg(*ap, int);
 #endif
 
 	self->value *= sc;
@@ -249,17 +279,17 @@ static void TEMPLATE(N, scdivide)(void *_self, va_list *ap)
 #if !defined(INT_SHORT)
 	T sc = va_arg(*ap, T);
 #else
-	T sc = va_arg(*ap, int);
+	T sc = (T) va_arg(*ap, int);
 #endif
 
 	self->value /= sc;
 }
 
 #if !defined(INT_UNSIGNED)
-static void* TEMPLATE(N, inverse_add)(void *_self)
+static void* TEMPLATE(N, inverse_add)(const void *_self)
 {
 	struct N *obj = cast(N(), copy(_self));
-	scmulti(obj, (T) -1);
+	obj->value *= -1;
 
 	return obj;
 }
@@ -274,7 +304,12 @@ static void* TEMPLATE(N, rnd)(void *_self, va_list *ap)
 	else
 		self = new(N(), 0);
 
-	unsigned int max = va_arg(*ap, unsigned int);
+#if !defined(INT_SHORT)
+	T max = va_arg(*ap, T);
+#else
+	T max = (T) va_arg(*ap, int);
+#endif
+
 	int negative = va_arg(*ap, int);
 
 	T random = (T) rand();
@@ -283,15 +318,25 @@ static void* TEMPLATE(N, rnd)(void *_self, va_list *ap)
 		random -= (RAND_MAX / 2);
 
 	if (max)
-		random = random % 10;
+		random = random % max;
 
 	self->value = random;
 	return self;
 }
 
-/*
- * Initialization
- */
+static void* TEMPLATE(N, absolute)(const void *_self)
+{
+	struct N *obj = cast(N(), copy(_self));
+
+	if (obj->value < 0)
+		obj->value *= -1;
+
+	return obj;
+}
+
+/* }}} */
+
+/* Initialization {{{ */
 
 ClassImpl(N)
 {
@@ -304,6 +349,7 @@ ClassImpl(N)
 				set, TEMPLATE(N, set),
 				get, TEMPLATE(N, get),
 				cmp, TEMPLATE(N, cmp),
+				cmp_to_zero, TEMPLATE(N, cmp_to_zero),
 				swap, TEMPLATE(N, swap),
 				sfprint, TEMPLATE(N, sfprint),
 				sfscan, TEMPLATE(N, sfscan),
@@ -315,6 +361,9 @@ ClassImpl(N)
 				scsub, TEMPLATE(N, scsub),
 				scmulti, TEMPLATE(N, scmulti),
 				scdivide, TEMPLATE(N, scdivide),
+				absolute, TEMPLATE(N, absolute),
+				set_to_zero, TEMPLATE(N, set_to_zero),
+				set_to_one, TEMPLATE(N, set_to_one),
 
 				#if !defined (INT_UNSIGNED)
 				inverse_add, TEMPLATE(N, inverse_add),
@@ -326,3 +375,5 @@ ClassImpl(N)
 
 	return PRIVATE(N);
 }
+
+/* }}} */

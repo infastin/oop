@@ -11,31 +11,29 @@
 
 #include <stdarg.h>
 
+#include "CollectionInterface.h"
 #include "Selectors.h"
 #include "TypeClass.h"
 
-ClassHeader(Matrix);
 ClassHeader(MatrixClass);
+ClassHeader(Matrix);
 ObjectHeader(MatrixException);
-
-typedef void *(*minorOf_f)(const void *self, unsigned int row, unsigned int column);
-typedef void *(*matrix_size_f)(const void *self, unsigned int *row, unsigned int *column);
-typedef void  (*determinant_f)(const void *self, void **retval);
 
 struct MatrixClass
 {
 	const struct TypeClass _;
-	minorOf_f minorOf;
-	matrix_size_f matrix_size;
-	determinant_f slow_determinant;
+	method minorOf;
+	method slow_determinant;
+	method fast_determinant;
+	const struct CollectionInterface ci;
 };
 
 struct Matrix
 {
 	const struct Object _;
 	const struct TypeClass *type;
-	unsigned int rows;
-	unsigned int columns;
+	size_t rows;
+	size_t columns;
 	void ***mass;
 
 	int changed;
@@ -53,18 +51,7 @@ struct Matrix
  *
  * @return Matrix without row and column
  */
-void* minorOf(const void *self, unsigned int row, unsigned int column);
-
-/**
- * @brief Get matrix size
- *
- * @param[in]  self    Matrix
- * @param[out] rows    Where will be number of rows
- * @param[out] columns Where will be number of columns
- *
- * @throw MatrixException
- */
-void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
+void* minorOf(const void *self, size_t row, size_t column);
 
 /**
  * @brief Slowly calculate matrix determinant
@@ -75,5 +62,15 @@ void matrix_size(const void *self, unsigned int *rows, unsigned int *columns);
  * @throw MatrixException
  */
 void slow_determinant(const void *self, var *retval);
+
+/**
+ * @brief Fastly calculate matrix determinant
+ *
+ * @param[in]  self   Matrix
+ * @param[out] retval Where will be determinant
+ *
+ * @throw MatrixException
+ */
+void fast_determinant(const void *self, var *retval);
 
 #endif /* end of include guard: MATRIX_H_720USNE8 */

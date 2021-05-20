@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <setjmp.h>
+#include <stdbool.h>
 
 #include "ExceptionObject.h"
 
@@ -23,7 +24,7 @@ struct Exception
 	const struct Object _;
 	const struct ExceptionObject *obj;
 	size_t   depth;
-	int 	 active;
+	bool 	 active;
 	jmp_buf *buffers[EXCEPTION_MAX_DEPTH];
 };
 

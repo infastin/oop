@@ -1,3 +1,6 @@
+/* vim: set fdm=marker : */
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stddef.h>
 
@@ -9,25 +12,46 @@
 #include "SortInterface.h"
 #include "Selectors.h"
 
-int cmp(const void *_self, const void *b)
+/* Selectors {{{ */
+
+int cmp(const void *_self, const void *b, ...)
 {
 	const struct Class *class = classOf(_self);
-	const struct SortInterface *sort = icast(SortInterface, _self);
+	const struct SortInterface *sort = icast(SortInterface, class);
 
 	if (sort->cmp.method == NULL)
 		throw(SortException(), "Error: Class '%s' doesn't implement 'cmp' method of 'SortInterface'!",
 				class->name);
 
-	typedef int  (*cmp_f)(const void *self, const void *b);
+	typedef int (*cmp_f)(const void *self, const void *b, va_list *ap);
 
+	va_list ap;
 
-	return ((cmp_f) sort->cmp.method)(_self, b);
+	va_start(ap, b);
+	int result = ((cmp_f) sort->cmp.method)(_self, b, &ap);
+	va_end(ap);
+
+	return result;
+}
+
+int vcmp(const void *_self, const void *b, va_list *ap)
+{
+	const struct Class *class = classOf(_self);
+	const struct SortInterface *sort = icast(SortInterface, class);
+
+	if (sort->cmp.method == NULL)
+		throw(SortException(), "Error: Class '%s' doesn't implement 'cmp' method of 'SortInterface'!",
+				class->name);
+
+	typedef int  (*cmp_f)(const void *self, const void *b, va_list *ap);
+
+	return ((cmp_f) sort->cmp.method)(_self, b, ap);
 }
 
 void swap(void *_self, void *b)
 {
 	const struct Class *class = classOf(_self);
-	const struct SortInterface *sort = icast(SortInterface, _self);
+	const struct SortInterface *sort = icast(SortInterface, class);
 
 	if (sort->swap.method == NULL)
 		throw(SortException(), "Error: Class '%s' doesn't implement 'swap' method of 'SortInterface'!",
@@ -38,15 +62,9 @@ void swap(void *_self, void *b)
 	((swap_f) sort->swap.method)(_self, b);
 }
 
-ObjectImpl(SortException)
-{
-	if (!_SortException)
-	{
-		_SortException = new(ExceptionObject(), "SortException");
-	}
+/* }}} */
 
-	return _SortException;
-}
+/* Initialization {{{ */
 
 InterfaceImpl(SortInterface)
 {
@@ -59,3 +77,17 @@ InterfaceImpl(SortInterface)
 
 	return _SortInterface;
 }
+
+/* Exception init */
+
+ObjectImpl(SortException)
+{
+	if (!_SortException)
+	{
+		_SortException = new(ExceptionObject(), "SortException");
+	}
+
+	return _SortException;
+}
+
+/* }}} */

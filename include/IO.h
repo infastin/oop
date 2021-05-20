@@ -4,8 +4,6 @@
 #include "Object.h"
 #include "IOInterface.h"
 
-ObjectHeader(IOException);
-
 int oprint(const void *self);
 int oprintln(const void *self);
 

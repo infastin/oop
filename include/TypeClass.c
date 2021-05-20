@@ -1,3 +1,5 @@
+/* vim: set fdm=marker : */
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -7,9 +9,7 @@
 #include "Selectors.h"
 #include "Exception.h"
 
-/*
- * Methods
- */
+/* TypeClass {{{ */
 
 static void* TypeClass_ctor(void *_self, va_list *ap)
 {
@@ -23,6 +23,10 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 
 	init_method(self, inverse_add);
 	init_method(self, inverse_multi);
+	init_method(self, absolute);
+	init_method(self, cmp_to_zero);
+	init_method(self, set_to_zero);
+	init_method(self, set_to_one);
 
 	struct IOInterface *self_io = go_to_field(self, struct TypeClass, io);
 	init_method(self_io, sfprint);
@@ -49,7 +53,6 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 	init_method(self_sort, swap);
 
 	voidf selector;
-
 	va_list ap_copy;
 	va_copy(ap_copy, *ap);
 
@@ -63,7 +66,15 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 			update_method(self, inverse_multi, method);
 		else if (selector == (voidf) rnd)
 			update_method(self, rnd, method);
-	
+		else if (selector == (voidf) cmp_to_zero)
+			update_method(self, cmp_to_zero, method);
+		else if (selector == (voidf) set_to_zero)
+			update_method(self, set_to_zero, method);
+		else if (selector == (voidf) set_to_one)
+			update_method(self, set_to_one, method);
+		else if (selector == (voidf) absolute)
+			update_method(self, absolute, method);
+
 		else if (selector == (voidf) sum)
 			update_method(self_oper, sum, method);
 		else if (selector == (voidf) subtract)
@@ -95,7 +106,7 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 		else if (selector == (voidf) scdivide)
 			update_method(self_sc, scdivide, method);
 
-		if (selector == (voidf) cmp)
+		else if (selector == (voidf) cmp)
 			update_method(self_sort, cmp, method);
 		else if (selector == (voidf) swap)
 			update_method(self_sort, swap, method);
@@ -105,36 +116,34 @@ static void* TypeClass_ctor(void *_self, va_list *ap)
 	return self;
 }
 
-/*
- * New selectors for Types
- */
+/* Selectors */
 
 // Return variable, inversed by addition, of some type  (a copy)
-void* inverse_add(void *_self)
+void* inverse_add(const void *_self)
 {
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
 
 	if (tclass->inverse_add.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_add' method!",
 				class->name);
 	
-	typedef void *(*inverse_add_f)(void *self);
+	typedef void *(*inverse_add_f)(const void *self);
 
 	return ((inverse_add_f) tclass->inverse_add.method)(_self);
 }
 
 // Return variable, inversed by multiplication, of some type (a copy)
-void* inverse_multi(void *_self)
+void* inverse_multi(const void *_self)
 {
-	const struct TypeClass *tclass = cast(TypeClass(), classOf(_self));
-	const struct Class *class = _self;
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
 
 	if (tclass->inverse_multi.method == NULL)
 		throw(TypeException(), "Error: Type '%s' doesn't have 'inverse_multi' method!",
 				class->name);
 
-	typedef void *(*inverse_multi_f)(void *self);
+	typedef void *(*inverse_multi_f)(const void *self);
 
 	return ((inverse_multi_f) tclass->inverse_multi.method)(_self);
 }
@@ -175,9 +184,65 @@ void* vrnd(const void *_class, void *_self, va_list *ap)
 	return ((rnd_f) tclass->rnd.method)(_self, ap);
 }
 
-/*
- * Initialization
- */
+int cmp_to_zero(const void *_self)
+{
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
+
+	if (tclass->cmp_to_zero.method == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'cmp_to_zero' method!",
+				class->name);
+
+	typedef int (*cmp_to_zero_f)(const void *self);
+
+	return ((cmp_to_zero_f) tclass->cmp_to_zero.method)(_self);
+}
+
+void set_to_zero(void *_self)
+{
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
+
+	if (tclass->set_to_zero.method == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'set_to_zero' method!",
+				class->name);
+
+	typedef int (*set_to_zero_f)(void *self);
+
+	((set_to_zero_f) tclass->set_to_zero.method)(_self);
+}
+
+void set_to_one(void *_self)
+{
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
+
+	if (tclass->set_to_one.method == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'set_to_one' method!",
+				class->name);
+
+	typedef int (*set_to_one_f)(void *self);
+
+	((set_to_one_f) tclass->set_to_one.method)(_self);
+}
+
+void* absolute(const void *_self)
+{
+	const struct Class *class = classOf(_self);
+	const struct TypeClass *tclass = cast(TypeClass(), class);
+
+	if (tclass->absolute.method == NULL)
+		throw(TypeException(), "Error: Type '%s' doesn't have 'absolute' method!",
+				class->name);
+
+	typedef void *(*absolute_f)(const void *self);
+
+	return ((absolute_f) tclass->absolute.method)(_self);
+}
+
+/* }}} */
+
+/* Initialization {{{ */
 
 ClassImpl(TypeClass)
 {
@@ -194,9 +259,7 @@ ClassImpl(TypeClass)
 	return _TypeClass;
 }
 
-/*
- * Exception Initialization
- */
+/* Exception init */
 
 ObjectImpl(TypeException)
 {
@@ -207,3 +270,5 @@ ObjectImpl(TypeException)
 
 	return _TypeException;
 }
+
+/* }}} */
